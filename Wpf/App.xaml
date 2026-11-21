@@ -15,8 +15,6 @@
             <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
             <conv:TimeSpanToSecondsConverter x:Key="TimeSpanToSecondsConverter"/>
             <conv:StringToImageSourceConverter x:Key="StringToImageSource"/>
-            <conv:NullToVisibilityConverter x:Key="NullToVisibility"/>
-            <conv:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibility"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

@@ -15,6 +15,7 @@ public static class PlaylistCoverCache
     // Per-playlist lock so overlapping LoadPlaylistsAsync calls don't race on the same file.
     private static readonly ConcurrentDictionary<int, SemaphoreSlim> Locks = new();
 
+    #region Public
     /// <summary>
     /// Synchronous fast path: returns an already-cached cover for this playlist, or null.
     /// Use this to set CachedCoverPath immediately on launch.
@@ -38,6 +39,10 @@ public static class PlaylistCoverCache
         }
     }
 
+    /// <summary>
+    /// Deletes all cached .png images for a given playlist cover.
+    /// </summary>
+    /// <param name="playlistId"></param>
     public static void Invalidate(int playlistId)
     {
         try
@@ -52,6 +57,13 @@ public static class PlaylistCoverCache
         catch { }
     }
 
+    /// <summary>
+    /// Returns a path to a cachced 2x2 collage PNG for a playlist.
+    /// </summary>
+    /// <param name="playlistId"></param>
+    /// <param name="thumbnails"></param>
+    /// <param name="ct"></param>
+    /// <returns></returns>
     public static async Task<string?> GetOrBuildAsync(
         int playlistId,
         IEnumerable<CoverThumbnail> thumbnails,
@@ -106,7 +118,14 @@ public static class PlaylistCoverCache
             gate.Release();
         }
     }
+    #endregion
 
+    #region Private
+    /// <summary>
+    /// Loads an image file from disk into a frozen BitmapImage.
+    /// </summary>
+    /// <param name="path"></param>
+    /// <returns></returns>
     private static BitmapSource Decode(string path)
     {
         var bmp = new BitmapImage();
@@ -119,6 +138,12 @@ public static class PlaylistCoverCache
         return bmp;
     }
 
+    /// <summary>
+    /// Generage / render up-to four input BitmapSource images into a single 256x256 (2x2 grid of 128x128 tiles).
+    /// Used for playlist covers.
+    /// </summary>
+    /// <param name="images"></param>
+    /// <returns></returns>
     private static BitmapSource Compose2x2(IReadOnlyList<BitmapSource> images)
     {
         const int tile = 128;
@@ -142,9 +167,16 @@ public static class PlaylistCoverCache
         return rtb;
     }
 
+    /// <summary>
+    /// Computes a 12-character uppercase hexadecimal prefix of the UTF-8 SHA-1 hash of a string. 
+    /// Used to version playlist cover cache files.
+    /// </summary>
+    /// <param name="s"></param>
+    /// <returns></returns>
     private static string Hash(string s)
     {
         var bytes = SHA1.HashData(Encoding.UTF8.GetBytes(s));
         return Convert.ToHexString(bytes)[..12];
     }
+    #endregion
 }

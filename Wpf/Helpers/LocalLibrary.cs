@@ -7,8 +7,9 @@ public static class LocalLibrary
     private static string Root => AppPaths.MusicFolder;
 
     #region Naming
-
-    /// <summary>Strips characters Windows disallows in filenames.</summary>
+    /// <summary>
+    /// Strips characters Windows disallows in filenames.
+    /// </summary>
     public static string SanitizeFileName(string name)
     {
         var invalid = Path.GetInvalidFileNameChars();
@@ -16,25 +17,39 @@ public static class LocalLibrary
         return string.IsNullOrWhiteSpace(cleaned) ? "Unnamed" : cleaned;
     }
 
-    /// <summary>Builds the canonical filename for a track: "{name}.m4a".</summary>
+    /// <summary>
+    /// Builds the canonical filename for a track: "{name}.m4a".
+    /// </summary>
     public static string BuildFileName(string trackName) => $"{SanitizeFileName(trackName)}.m4a";
 
+    /// <summary>
+    /// Santizes a folder name by stripping characters Windows disallows in folder names.
+    /// </summary>
+    /// <param name="name"></param>
+    /// <returns></returns>
     public static string SanitizeFolderName(string name) => SanitizeFileName(name);
 
-    /// <summary>Builds the canonical thumbnail filename for a track: "{name}.jpg".</summary>
+    /// <summary>
+    /// Builds the canonical thumbnail filename for a track: "{name}.jpg".
+    /// </summary>
     public static string BuildThumbnailFileName(string trackName) => $"{SanitizeFileName(trackName)}.jpg";
-
     #endregion
 
     #region Paths
-
+    /// <summary>
+    /// Get the folder path of a given playlist.
+    /// </summary>
+    /// <param name="playlistName"></param>
+    /// <returns></returns>
     private static string? PlaylistFolder(string playlistName)
     {
         if (string.IsNullOrWhiteSpace(Root)) return null;
         return Path.Combine(Root, SanitizeFolderName(playlistName));
     }
 
-    /// <summary>Returns the playlist's folder path if it exists, otherwise null.</summary>
+    /// <summary>
+    /// Returns the playlist's folder path if it exists, otherwise null.
+    /// </summary>
     public static string? FindPlaylistFolder(string playlistName)
     {
         var folder = PlaylistFolder(playlistName);
@@ -42,18 +57,21 @@ public static class LocalLibrary
         return folder;
     }
 
-    /// <summary>Returns the playlist's thumbnail folder path (may not exist).</summary>
+    /// <summary>
+    /// Returns the playlist's thumbnail folder path (may not exist).
+    /// </summary>
     public static string? ThumbnailFolder(string playlistName)
     {
         if (string.IsNullOrWhiteSpace(Root)) return null;
         return Path.Combine(Root, SanitizeFolderName(playlistName), ".thumbnails");
     }
-
     #endregion
 
     #region Lookup
-
-    /// <summary>Returns the full path to a track's file in a playlist folder, or null if not downloaded.</summary>
+    /// <summary>
+    /// Returns the full path to a track's file in a playlist folder, or null if not downloaded.
+    /// </summary>
+    /// <returns></returns>
     public static string? FindLocalFile(string playlistName, string trackName)
     {
         var folder = PlaylistFolder(playlistName);
@@ -63,7 +81,9 @@ public static class LocalLibrary
         return File.Exists(path) ? path : null;
     }
 
-    /// <summary>Returns the set of downloaded track names in a playlist folder.</summary>
+    /// <summary>
+    /// Returns the set of downloaded track names in a playlist folder.
+    /// </summary>
     public static HashSet<string> GetDownloadedTrackNames(string playlistName)
     {
         var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -80,7 +100,9 @@ public static class LocalLibrary
         return result;
     }
 
-    /// <summary>Returns the full path to a track's thumbnail in a playlist folder, or null if missing.</summary>
+    /// <summary>
+    /// Returns the full path to a track's thumbnail in a playlist folder, or null if missing.
+    /// </summary>
     public static string? FindLocalThumbnail(string playlistName, string trackName)
     {
         var folder = ThumbnailFolder(playlistName);
@@ -89,12 +111,12 @@ public static class LocalLibrary
         var path = Path.Combine(folder, BuildThumbnailFileName(trackName));
         return File.Exists(path) ? path : null;
     }
-
     #endregion
 
-    #region Mutations
-
-    /// <summary>Deletes a track's file from a playlist folder. Returns true if a file was deleted.</summary>
+    #region Operations
+    /// <summary>
+    /// Deletes a track's file from a playlist folder. Returns true if a file was deleted.
+    /// </summary>
     public static bool DeleteLocalFile(string playlistName, string trackName)
     {
         var path = FindLocalFile(playlistName, trackName);
@@ -104,7 +126,9 @@ public static class LocalLibrary
         catch { return false; }
     }
 
-    /// <summary>Renames a track's file inside a playlist folder. Returns true if renamed.</summary>
+    /// <summary>
+    /// Renames a track's file inside a playlist folder. Returns true if renamed.
+    /// </summary>
     public static bool RenameLocalFile(string playlistName, string oldName, string newName)
     {
         var folder = PlaylistFolder(playlistName);
@@ -127,7 +151,9 @@ public static class LocalLibrary
         catch { return false; }
     }
 
-    /// <summary>Renames a playlist's folder. No-op if the old folder does not exist.</summary>
+    /// <summary>
+    /// Renames a playlist's folder. No-op if the old folder does not exist.
+    /// </summary>
     public static bool RenamePlaylistFolder(string oldName, string newName)
     {
         if (string.IsNullOrWhiteSpace(Root)) return false;
@@ -149,7 +175,9 @@ public static class LocalLibrary
         catch { return false; }
     }
 
-    /// <summary>Renames a track's thumbnail inside a playlist folder. Returns true if renamed.</summary>
+    /// <summary>
+    /// Renames a track's thumbnail inside a playlist folder. Returns true if renamed.
+    /// </summary>
     public static bool RenameLocalThumbnail(string playlistName, string oldName, string newName)
     {
         var folder = ThumbnailFolder(playlistName);
@@ -172,7 +200,9 @@ public static class LocalLibrary
         catch { return false; }
     }
 
-    /// <summary>Deletes a playlist's folder and everything inside it.</summary>
+    /// <summary>
+    /// Deletes a playlist's folder and everything inside it.
+    /// </summary>
     public static bool DeletePlaylistFolder(string playlistName)
     {
         var folder = PlaylistFolder(playlistName);
@@ -182,7 +212,9 @@ public static class LocalLibrary
         catch { return false; }
     }
 
-    /// <summary>Deletes a track's thumbnail from a playlist folder. Returns true if a file was deleted.</summary>
+    /// <summary>
+    /// Deletes a track's thumbnail from a playlist folder. Returns true if a file was deleted.
+    /// </summary>
     public static bool DeleteLocalThumbnail(string playlistName, string trackName)
     {
         var path = FindLocalThumbnail(playlistName, trackName);
@@ -191,6 +223,5 @@ public static class LocalLibrary
         try { File.Delete(path); return true; }
         catch { return false; }
     }
-
     #endregion
 }
