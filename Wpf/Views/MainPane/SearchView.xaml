@@ -21,6 +21,32 @@
                         Style="{StaticResource PrimaryButton}"/>
             </StackPanel>
 
+            <StackPanel DockPanel.Dock="Top"
+                        Orientation="Horizontal"
+                        Margin="0,0,0,8">
+                <TextBox Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}"
+                         Width="400"
+                         KeyDown="QueryBox_KeyDown"/>
+                <Button Content="Search"
+                        Command="{Binding SearchCommand}"
+                        Style="{StaticResource PrimaryButton}"/>
+
+                <TextBlock Text="Per page"
+                           VerticalAlignment="Center"
+                           Margin="16,0,6,0"
+                           Style="{StaticResource PrimaryTextBlock}"/>
+                <ComboBox Width="80"
+                          VerticalAlignment="Center"
+                          ItemsSource="{Binding PageSizeOptions}"
+                          SelectedItem="{Binding PageSize, Mode=TwoWay}"/>
+            </StackPanel>
+
+            <TextBlock DockPanel.Dock="Top"
+                       Text="{Binding Status}"
+                       Margin="0,0,0,8"
+                       Foreground="{DynamicResource DisabledTextColor}"
+                       Style="{StaticResource PrimaryTextBlock}"/>
+
             <TextBlock DockPanel.Dock="Top"
                        Text="{Binding Status}"
                        Margin="0,0,0,8"
@@ -113,6 +139,24 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </ScrollViewer>
+
+            <StackPanel DockPanel.Dock="Bottom"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Center"
+                        Margin="0,8,0,0">
+                <Button Content="◀ Prev"
+                        Command="{Binding PrevPageCommand}"
+                        Style="{StaticResource PrimaryButton}"
+                        Width="100"/>
+                <TextBlock Text="{Binding PageLabel}"
+                           VerticalAlignment="Center"
+                           Margin="12,0"
+                           Style="{StaticResource PrimaryTextBlock}"/>
+                <Button Content="Next ▶"
+                        Command="{Binding NextPageCommand}"
+                        Style="{StaticResource PrimaryButton}"
+                        Width="100"/>
+            </StackPanel>
         </DockPanel>
     </Grid>
 </UserControl>

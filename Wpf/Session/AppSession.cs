@@ -15,6 +15,10 @@ public sealed class AppSession : ViewModelBase
     {
         Repo = repo;
         SelectedPlaylistTracks = new ObservableCollection<TrackRowViewModel>();
+        SelectedPlaylistTracks.CollectionChanged += (_, _) =>
+        {
+            if (!IsFilterActive) RefreshFilteredTracks();
+        };
 
         // Route all row-level operations through the session's status bar
         PlayRequested += t => SetStatus($"Playing: {t.Name}");
@@ -47,6 +51,12 @@ public sealed class AppSession : ViewModelBase
 
     public ObservableCollection<PlaylistResponse> Playlists { get; } = new();
     public ObservableCollection<TrackRowViewModel> SelectedPlaylistTracks { get; }
+
+    /// <summary>
+    /// Filtered view of <see cref="SelectedPlaylistTracks"/> bound by PlaylistView.
+    /// Empty filter => contains every row (same instances).
+    /// </summary>
+    public ObservableCollection<TrackRowViewModel> FilteredPlaylistTracks { get; } = new();
 
     public PlaybackViewModel Playback { get; private set; } = null!;
     public DownloadViewModel Download { get; private set; } = null!;
@@ -157,6 +167,7 @@ public sealed class AppSession : ViewModelBase
         {
             if (!SetProperty(ref _selectedPlaylist, value)) return;
             SelectedTrack = null;
+            ClearPlaylistFilter();
             _ = ReloadSelectedPlaylistTracksAsync();
         }
     }
@@ -273,6 +284,7 @@ public sealed class AppSession : ViewModelBase
     public async Task ReloadSelectedPlaylistTracksAsync()
     {
         SelectedPlaylistTracks.Clear();
+        FilteredPlaylistTracks.Clear();
         SelectedTrack = null;
 
         if (Playback != null)
@@ -328,6 +340,60 @@ public sealed class AppSession : ViewModelBase
         NewPlaylistName = string.Empty;
     }
 
+    #endregion
+
+    #region Playlist Filtering
+    private bool _playlistFilterOpen;
+    public bool PlaylistFilterOpen
+    {
+        get => _playlistFilterOpen;
+        set => SetProperty(ref _playlistFilterOpen, value);
+    }
+
+    private string _playlistFilter = string.Empty;
+
+    public string PlaylistFilter
+    {
+        get => _playlistFilter;
+        set
+        {
+            if (!SetProperty(ref _playlistFilter, value)) return;
+            OnPropertyChanged(nameof(IsFilterActive));
+            RefreshFilteredTracks();
+        }
+    }
+
+    public bool IsFilterActive => !string.IsNullOrWhiteSpace(_playlistFilter);
+
+    /// <summary>
+    /// Rebuilds <see cref="FilteredPlaylistTracks"/> from <see cref="SelectedPlaylistTracks"/>
+    /// using a case-insensitive "contains" match on track name.
+    /// </summary>
+    public void RefreshFilteredTracks()
+    {
+        var term = _playlistFilter?.Trim() ?? string.Empty;
+
+        FilteredPlaylistTracks.Clear();
+
+        if (term.Length == 0)
+        {
+            foreach (var t in SelectedPlaylistTracks)
+                FilteredPlaylistTracks.Add(t);
+            return;
+        }
+
+        foreach (var t in SelectedPlaylistTracks)
+        {
+            if (t.Name.Contains(term, StringComparison.OrdinalIgnoreCase))
+                FilteredPlaylistTracks.Add(t);
+        }
+    }
+
+    public void ClearPlaylistFilter()
+    {
+        if (_playlistFilter.Length == 0) return;
+        PlaylistFilter = string.Empty;
+    }
     #endregion
 
     #region Row callbacks

@@ -1,13 +1,13 @@
 ﻿using Ognia.Wpf.Helpers;
 using Ognia.Wpf.Models.Track;
 using YoutubeExplode;
+using YoutubeExplode.Search;
 
 namespace Ognia.Wpf.Local;
 
 /// <summary>
-/// Client-side YouTube search. Mirrors YouTubeUrlParser — same library, same
-/// single responsibility. No backend involvement; both account and guest modes
-/// use this.
+/// Client-side YouTube search. Fetches a bounded window of results and
+/// returns them as raw TrackResponse items — pagination is the caller's concern.
 /// </summary>
 public class YouTubeSearch
 {
@@ -15,16 +15,29 @@ public class YouTubeSearch
 
     public string SourceName => "youtube";
 
+    /// <summary>
+    /// Returns up to <paramref name="limit"/> results starting at <paramref name="offset"/>.
+    /// Uses YouTubeExplode's cursor-based enumeration so repeated calls with growing
+    /// offsets resume rather than refetch from scratch.
+    /// </summary>
     public async Task<IReadOnlyList<TrackResponse>> SearchAsync(
-    string query, int limit = 20, CancellationToken ct = default)
+        string query,
+        int offset,
+        int limit,
+        CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(query)) return Array.Empty<TrackResponse>();
+        if (limit <= 0) return Array.Empty<TrackResponse>();
 
-        var results = new List<TrackResponse>();
-        await foreach (var video in _client.Search.GetResultsAsync(query, ct))
+        var results = new List<TrackResponse>(limit);
+        var index = 0;
+
+        await foreach (var result in _client.Search.GetResultsAsync(query, ct))
         {
-            if (video is not YoutubeExplode.Search.VideoSearchResult v) continue;
+            if (result is not VideoSearchResult v) continue;
             if (string.IsNullOrWhiteSpace(v.Id.Value)) continue;
+
+            if (index++ < offset) continue;
 
             results.Add(new TrackResponse
             {
@@ -43,7 +56,7 @@ public class YouTubeSearch
             if (results.Count >= limit) break;
         }
 
-        // Download thumbnails in parallel, after all results are collected.
+        // Download thumbnails in parallel for this page only.
         var downloads = results.Select(async track =>
         {
             if (string.IsNullOrWhiteSpace(track.ThumbnailUrl)) return;

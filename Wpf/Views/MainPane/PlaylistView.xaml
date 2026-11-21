@@ -29,6 +29,7 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
                         <TextBlock Grid.Row="0"
@@ -95,6 +96,12 @@
                                         Style="{StaticResource IconButton}"
                                         Width="40" Height="40"
                                         ToolTip="Toggle shuffle"/>
+
+                                <Button Content="🔎"
+                                        Command="{Binding ToggleFilterCommand}"
+                                        Style="{StaticResource IconButton}"
+                                        Width="40" Height="40"
+                                        ToolTip="Filter tracks in this playlist"/>
                             </StackPanel>
 
                             <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
@@ -147,12 +154,25 @@
                                         Height="40" Width="40"/>
                             </StackPanel>
                         </StackPanel>
+
+                        <!-- Filter input -->
+                        <StackPanel Grid.Row="5" Margin="0,4,0,0"
+                                    Orientation="Horizontal"
+                                    Visibility="{Binding Session.PlaylistFilterOpen, Converter={StaticResource BoolToVisibility}}">
+                            <TextBox Text="{Binding Session.PlaylistFilter, UpdateSourceTrigger=PropertyChanged}"
+                                     Width="300"
+                                     ToolTip="Filter tracks by name"/>
+                            <Button Content="✕"
+                                    Command="{Binding ClearFilterCommand}"
+                                    Height="40" Width="40"
+                                    ToolTip="Clear filter"/>
+                        </StackPanel>
                     </Grid>
                 </Grid>
             </Border>
 
             <ListBox x:Name="TracksList"
-                     ItemsSource="{Binding Session.SelectedPlaylistTracks}"
+                     ItemsSource="{Binding Session.FilteredPlaylistTracks}"
                      SelectedItem="{Binding Session.SelectedTrack}"
                      HorizontalContentAlignment="Stretch"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"

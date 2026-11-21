@@ -31,6 +31,10 @@ public sealed class PlaylistViewModel : ViewModelBase
         ToggleShuffleCommand = new RelayCommand(
             _ => _playback.IsShuffleOn = !_playback.IsShuffleOn);
 
+        ToggleFilterCommand = new RelayCommand(_ => Session.PlaylistFilterOpen = !Session.PlaylistFilterOpen);
+
+        ClearFilterCommand = new RelayCommand(_ => Session.ClearPlaylistFilter());
+
         OpenFolderCommand = new RelayCommand(
             _ => OpenFolder(),
             _ => Session.SelectedPlaylist != null
@@ -80,6 +84,8 @@ public sealed class PlaylistViewModel : ViewModelBase
 
     public RelayCommand PlayPlaylistCommand { get; }
     public RelayCommand ToggleShuffleCommand { get; }
+    public RelayCommand ToggleFilterCommand { get; }
+    public RelayCommand ClearFilterCommand { get; }
     public RelayCommand OpenFolderCommand { get; }
     public RelayCommand RenamePlaylistCommand { get; }
     public RelayCommand ConfirmRenameCommand { get; }
