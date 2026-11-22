@@ -360,18 +360,16 @@ public sealed class SettingsViewModel : ViewModelBase
         ConfirmPassword = string.Empty;
     }
 
-    public (bool Success, string? Error) ExportLibrary(string destinationPath)
+    public async Task<(bool Success, string? Error, int Count)> ExportLibraryAsync(string destinationPath)
     {
-        var store = new LocalLibraryStore();
-        return store.ExportTo(destinationPath)
-            ? (true, null)
-            : (false, "Failed to export the library.");
+        var (ok, error, count) = await Session.Transfer.ExportAsync(destinationPath);
+        return (ok, error, count);
     }
 
-    public (bool Success, string? Error, int PlaylistsImported) ImportLibrary(string sourcePath)
+    public async Task<(bool Success, string? Error, int Count)> ImportLibraryAsync(string sourcePath)
     {
-        var store = new LocalLibraryStore();
-        return store.ImportFrom(sourcePath);
+        var (ok, error, count) = await Session.Transfer.ImportAsync(sourcePath);
+        return (ok, error, count);
     }
 
     public Task<(bool Success, string? Error, string? BackupPath)> PrepareUpgradeAsync()

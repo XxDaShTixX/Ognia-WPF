@@ -42,6 +42,10 @@ public class ApiMusicRepo : IMusicRepo
         return (true, null, result.Added, result.Skipped);
     }
 
+    public Task<(bool Success, string? Error, List<string> Added, List<string> Skipped, List<string> Invalid)>
+    AddTracksBulkAsync(int playlistId, IReadOnlyList<BulkAddTrackItem> items, IProgress<string>? progress = null)
+    => _api.AddTracksBulkAsync(playlistId, items);
+
     public Task<(bool Success, string? Error)> RemoveTrackAsync(int playlistId, int trackId)
         => _api.RemoveTrackAsync(playlistId, trackId);
 

@@ -27,7 +27,7 @@ public partial class SettingsView : UserControl
     private void ConfirmPasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
         => _vm.ConfirmPassword = ((PasswordBox)sender).Password;
 
-    private void ExportLibrary_Click(object sender, RoutedEventArgs e)
+    private async void ExportLibrary_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new Microsoft.Win32.SaveFileDialog
         {
@@ -38,8 +38,10 @@ public partial class SettingsView : UserControl
 
         if (dialog.ShowDialog() != true) return;
 
-        var (success, error) = _vm.ExportLibrary(dialog.FileName);
-        if (success) _vm.Session.SetStatus("Library exported.");
+        _vm.Session.SetStatus("Exporting library…");
+        var (success, error, count) = await _vm.ExportLibraryAsync(dialog.FileName);
+
+        if (success) _vm.Session.SetStatus($"Exported {count} playlist(s).");
         else _vm.Session.SetError(error ?? "Export failed.");
     }
 
@@ -53,7 +55,8 @@ public partial class SettingsView : UserControl
 
         if (dialog.ShowDialog() != true) return;
 
-        var (success, error, count) = _vm.ImportLibrary(dialog.FileName);
+        _vm.Session.SetStatus("Importing library…");
+        var (success, error, count) = await _vm.ImportLibraryAsync(dialog.FileName);
 
         if (success)
         {

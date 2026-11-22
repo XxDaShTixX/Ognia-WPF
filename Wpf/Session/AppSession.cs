@@ -1,6 +1,7 @@
 ﻿using Ognia.Wpf.Helpers;
 using Ognia.Wpf.Models.Playlist;
 using Ognia.Wpf.Repos;
+using Ognia.Wpf.Services;
 using Ognia.Wpf.ViewModels;
 using System.Collections.ObjectModel;
 using System.Windows.Threading;
@@ -47,6 +48,8 @@ public sealed class AppSession : ViewModelBase
     }
 
     public IMusicRepo Repo { get; }
+    public ILibraryTransfer Transfer { get; set; } = null!;
+
     public TrackDetailsViewModel? Details { get; set; }
 
     public ObservableCollection<PlaylistResponse> Playlists { get; } = new();

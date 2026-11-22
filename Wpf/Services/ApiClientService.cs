@@ -369,6 +369,37 @@ public class ApiClientService
         }
     }
 
+    public async Task<(bool Success, string? Error, List<string> Added, List<string> Skipped, List<string> Invalid)>
+    AddTracksBulkAsync(int playlistId, IReadOnlyList<BulkAddTrackItem> items)
+    {
+        if (items.Count == 0)
+            return (true, null, new(), new(), new());
+
+        try
+        {
+            var body = new BulkAddTracksRequest { Urls = items.ToList() };
+            var response = await SendWithRefreshAsync(() =>
+                _http.PostAsJsonAsync($"api/playlists/{playlistId}/tracks/bulk", body));
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                return (false, $"Bulk add failed ({response.StatusCode}): {error}",
+                    new(), new(), new());
+            }
+
+            var data = await response.Content.ReadFromJsonAsync<BulkAddTracksResponse>();
+            return (true, null,
+                data?.Added ?? new(),
+                data?.Skipped ?? new(),
+                data?.Invalid ?? new());
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Network error: {ex.Message}", new(), new(), new());
+        }
+    }
+
     /// <summary>
     /// Removes track from an existing playlist.
     /// </summary>
