@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System.Collections.ObjectModel;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Ognia.Wpf.ViewModels;
@@ -49,20 +50,20 @@ public partial class PlaylistView : UserControl
         var target = GetItemUnderMouse(e.OriginalSource as DependencyObject);
 
         var session = vm.Session;
-        var tracks = session.SelectedPlaylistTracks;
+        var full = session.SelectedPlaylistTracks;
 
-        var fromIndex = tracks.IndexOf(dragged);
+        var fromIndex = full.IndexOf(dragged);
         if (fromIndex < 0) return;
 
-        int toIndex = target != null ? tracks.IndexOf(target) : tracks.Count - 1;
+        int toIndex = target != null ? full.IndexOf(target) : full.Count - 1;
         if (toIndex < 0 || toIndex == fromIndex) return;
 
-        // Move within the ObservableCollection for immediate visual feedback.
-        tracks.Move(fromIndex, toIndex);
+        // Move within the full collection, then reindex + reapply filter.
+        full.Move(fromIndex, toIndex);
         session.ReindexTracks();
+        session.RefreshFilteredTracks();
 
-        // Persist the new order.
-        var orderedIds = tracks.Select(t => t.Id).ToList();
+        var orderedIds = full.Select(t => t.Id).ToList();
         var playlistId = session.SelectedPlaylist?.Id;
         if (playlistId == null) return;
 

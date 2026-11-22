@@ -5,7 +5,6 @@ public static class TrackSourceUrlResolver
     private static readonly ITrackSourceUrlProvider[] Providers =
     {
         new YouTubeSourceUrlProvider(),
-        // new SpotifySourceUrlProvider(),
     };
 
     private static readonly Dictionary<string, ITrackSourceUrlProvider> ByName =

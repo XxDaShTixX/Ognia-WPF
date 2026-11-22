@@ -1,259 +1,212 @@
-﻿using Ognia.Wpf.Helpers;
-using Ognia.Wpf.Local;
-using Ognia.Wpf.Models.Playlist;
-using Ognia.Wpf.Models.Track;
+﻿using Ognia.Wpf.Local;
 using Ognia.Wpf.Session;
 using System.Collections.ObjectModel;
+using System.Windows.Input;
 
 namespace Ognia.Wpf.ViewModels;
 
 public sealed class SearchViewModel : ViewModelBase
 {
-    private readonly AppSession _session;
-    private readonly YouTubeSearch _youtube = new();
+    private readonly YouTubeSearch _search = new();
+
+    private string _query = string.Empty;
+    private string _status = string.Empty;
+    private int _page = 1;
+    private bool _isBusy;
+    private int _pageSize = 20;
 
     public SearchViewModel(AppSession session)
     {
-        _session = session;
-        _session.Playback.ErrorOccurred += msg => _session.SetError(msg);
+        Session = session;
 
         SearchCommand = new RelayCommand(
-            async _ => await SearchAsync(),
-            _ => !string.IsNullOrWhiteSpace(Query) && !IsSearching);
+            async _ => await RunSearchAsync(),
+            _ => !IsBusy && !string.IsNullOrWhiteSpace(Query));
 
-        AddToPlaylistCommand = new RelayCommand(
-            async p => await AddToPlaylistAsync((SearchResultRow)p!),
-            p => p is SearchResultRow row && row.SelectedPlaylist != null && !_session.IsBusy);
+        NextPageCommand = new RelayCommand(
+            async _ => await GoToPageAsync(Page + 1),
+            _ => !IsBusy && HasNextPage);
+
+        PrevPageCommand = new RelayCommand(
+            async _ => await GoToPageAsync(Page - 1),
+            _ => !IsBusy && Page > 1);
 
         PreviewCommand = new RelayCommand(
-            async p => await PreviewAsync((SearchResultRow)p!),
-            p => p is SearchResultRow && !IsPreviewing);
+            async p => await PreviewAsync((ResultRowViewModel)p!),
+            p => p is ResultRowViewModel);
 
-        _session.Playback.PropertyChanged += (_, e) =>
-        {
-            if (e.PropertyName != nameof(PlaybackViewModel.NowPlaying)) return;
-            var np = _session.Playback.NowPlaying;
-            if (string.IsNullOrEmpty(np)) SetPlaying(null);
-        };
+        AddToPlaylistCommand = new RelayCommand(
+            async p => await AddToPlaylistAsync((ResultRowViewModel)p!),
+            p => p is ResultRowViewModel r && r.SelectedPlaylist != null);
 
-        _session.Playback.PropertyChanged += (_, e) =>
-        {
-            if (e.PropertyName != nameof(PlaybackViewModel.PlaybackState)) return;
-            if (_session.Playback.PlaybackState == NAudio.Wave.PlaybackState.Stopped)
-                SetPlaying(null);
-        };
-
-        _session.Playlists.CollectionChanged += (_, _) =>
-        {
-            foreach (var row in Results)
-                SyncRowPlaylists(row);
-        };
-
-        _ = _session.LoadPlaylistsAsync();
+        PageSizeOptions = new[] { 10, 20, 30, 50 };
     }
 
-    private string _query = string.Empty;
+    public AppSession Session { get; }
+
+    public ObservableCollection<ResultRowViewModel> Results { get; } = new();
+
+    public IReadOnlyList<int> PageSizeOptions { get; }
+
+    #region State
+
     public string Query
     {
         get => _query;
         set
         {
             if (!SetProperty(ref _query, value)) return;
-            System.Windows.Input.CommandManager.InvalidateRequerySuggested();
+            CommandManager.InvalidateRequerySuggested();
         }
     }
 
-    private bool _isSearching;
-    public bool IsSearching
-    {
-        get => _isSearching;
-        private set
-        {
-            if (!SetProperty(ref _isSearching, value)) return;
-            System.Windows.Input.CommandManager.InvalidateRequerySuggested();
-        }
-    }
-
-    private bool _isPreviewing;
-    public bool IsPreviewing
-    {
-        get => _isPreviewing;
-        private set
-        {
-            if (!SetProperty(ref _isPreviewing, value)) return;
-            System.Windows.Input.CommandManager.InvalidateRequerySuggested();
-        }
-    }
-
-    private string? _status;
-    public string? Status
+    public string Status
     {
         get => _status;
-        private set => SetProperty(ref _status, value);
+        set => SetProperty(ref _status, value);
     }
 
-    public ObservableCollection<SearchResultRow> Results { get; } = new();
+    public bool IsBusy
+    {
+        get => _isBusy;
+        set
+        {
+            if (!SetProperty(ref _isBusy, value)) return;
+            CommandManager.InvalidateRequerySuggested();
+        }
+    }
 
-    public ObservableCollection<PlaylistResponse> Playlists => _session.Playlists;
+    public int Page
+    {
+        get => _page;
+        private set
+        {
+            if (!SetProperty(ref _page, value)) return;
+            OnPropertyChanged(nameof(PageLabel));
+            CommandManager.InvalidateRequerySuggested();
+        }
+    }
+
+    public int PageSize
+    {
+        get => _pageSize;
+        set
+        {
+            if (value <= 0) return;
+            if (!SetProperty(ref _pageSize, value)) return;
+            OnPropertyChanged(nameof(PageLabel));
+            _ = GoToPageAsync(1);
+        }
+    }
+
+    public bool HasNextPage => Results.Count == PageSize;
+
+    public string PageLabel => $"Page {Page}";
+
+    #endregion
+
+    #region Commands
 
     public RelayCommand SearchCommand { get; }
+    public RelayCommand NextPageCommand { get; }
+    public RelayCommand PrevPageCommand { get; }
     public RelayCommand PreviewCommand { get; }
     public RelayCommand AddToPlaylistCommand { get; }
 
-    private async Task SearchAsync()
+    #endregion
+
+    #region Search pipeline
+
+    private async Task RunSearchAsync()
+    {
+        Page = 1;
+        await LoadPageAsync();
+    }
+
+    private async Task GoToPageAsync(int page)
+    {
+        if (page < 1) return;
+        Page = page;
+        await LoadPageAsync();
+    }
+
+    private async Task LoadPageAsync()
     {
         if (string.IsNullOrWhiteSpace(Query)) return;
 
-        IsSearching = true;
+        IsBusy = true;
         Status = "Searching…";
         Results.Clear();
-        _session.SetStatus($"Searching for '{Query.Trim()}'…");
 
         try
         {
-            var hits = await _youtube.SearchAsync(Query.Trim());
-            foreach (var t in hits)
-                Results.Add(new SearchResultRow(t, Playlists));
+            var offset = (Page - 1) * PageSize;
+            var items = await _search.SearchAsync(Query.Trim(), offset, PageSize);
 
-            Status = Results.Count == 0
+            foreach (var t in items)
+                Results.Add(new ResultRowViewModel(t, Session));
+
+            OnPropertyChanged(nameof(HasNextPage));
+            Status = items.Count == 0
                 ? "No results."
-                : $"{Results.Count} result(s).";
-
-            _session.SetStatus(Results.Count == 0
-                ? $"No results for '{Query.Trim()}'."
-                : $"Found {Results.Count} result(s) for '{Query.Trim()}'.");
+                : $"{items.Count} result(s) — page {Page}";
         }
         catch (Exception ex)
         {
             Status = $"Search failed: {ex.Message}";
-            _session.SetError($"Search failed: {ex.Message}");
         }
         finally
         {
-            IsSearching = false;
+            IsBusy = false;
         }
     }
 
-    private async Task PreviewAsync(SearchResultRow row)
-    {
-        IsPreviewing = true;
-        _session.SetStatus($"Preparing preview of '{row.Name}'…");
+    #endregion
 
+    #region Row actions
+
+    private async Task PreviewAsync(ResultRowViewModel row)
+    {
+        if (row == null) return;
+
+        // Reset any other row's playing flag.
+        foreach (var r in Results) r.IsPlaying = false;
+        row.IsPlaying = true;
+
+        // Preview = download-to-temp then play. Reuses the session's downloader path
+        // for a one-shot preview; no playlist binding.
         try
         {
             var downloader = new PreviewDownloader();
-            var progress = new Progress<double>(p =>
-                _session.SetStatus($"Downloading '{row.Name}' — {p:P0}"));
+            var path = await downloader.DownloadAsync(row.Track);
 
-            var path = await downloader.DownloadAsync(row.Track, progress);
-            var url = TrackSourceUrlResolver.BuildUrl(row.SourceName, row.SourceId);
-            _session.Playback.PlayLocalFile(path, row.Name, row.ThumbnailUrl, url);
-            SetPlaying(row.SourceId);
-            _session.SetStatus($"Previewing '{row.Name}'.");
+            Session.SetStatus($"Previewing: {row.Name}");
+            // TODO: hook into PlaybackViewModel for a real preview stream.
+            _ = path;
         }
         catch (Exception ex)
         {
-            _session.SetError($"Preview failed: {ex.Message}");
-        }
-        finally
-        {
-            IsPreviewing = false;
+            Session.SetError($"Preview failed: {ex.Message}");
         }
     }
 
-    private string? _playingSourceId;
-    private void SetPlaying(string? sourceId)
+    private async Task AddToPlaylistAsync(ResultRowViewModel row)
     {
-        _playingSourceId = sourceId;
-        foreach (var row in Results)
-            row.IsPlaying = string.Equals(row.SourceId, sourceId, StringComparison.Ordinal);
-    }
+        if (row?.SelectedPlaylist == null) return;
 
-    private async Task AddToPlaylistAsync(SearchResultRow row)
-    {
-        var playlist = row.SelectedPlaylist;
-        if (playlist == null) return;
-
-        var playlistId = playlist.Id;
-        var playlistName = playlist.Name;
-
-        var url = TrackSourceUrlResolver.BuildUrl(row.SourceName, row.SourceId);
-        if (url == null)
+        var url = row.SourceUrl;
+        if (string.IsNullOrWhiteSpace(url))
         {
-            _session.SetError("Could not build URL for this track.");
+            Session.SetError("Could not build a source URL for this result.");
             return;
         }
 
-        _session.SetStatus($"Adding '{row.Name}' to {playlistName}…");
-
-        await _session.RunBusyAsync(async () =>
-        {
-            var result = await _session.Repo.AddTracksAsync(playlistId, url);
-
-            if (!result.Success)
-            {
-                _session.SetError(result.Error ?? "Failed to add track.");
-                return;
-            }
-
-            if (result.Added == 0)
-            {
-                _session.SetStatus($"'{row.Name}' already in this playlist.");
-                return;
-            }
-
-            PlaylistCoverCache.Invalidate(playlistId);
-            await _session.LoadPlaylistsAsync();
-            _session.SetStatus($"Added '{row.Name}' to {playlistName}.");
-        });
+        var result = await Session.Repo.AddTracksAsync(row.SelectedPlaylist.Id, url);
+        if (!result.Success)
+            Session.SetError(result.Error ?? "Failed to add track.");
+        else
+            Session.SetStatus($"Added '{row.Name}' to '{row.SelectedPlaylist.Name}'.");
     }
 
-    private void SyncRowPlaylists(SearchResultRow row)
-    {
-        row.Playlists.Clear();
-        foreach (var p in _session.Playlists)
-            row.Playlists.Add(p);
-    }
-}
-
-public sealed class SearchResultRow : ViewModelBase
-{
-    private PlaylistResponse? _selectedPlaylist;
-
-    public SearchResultRow(TrackResponse track, IEnumerable<PlaylistResponse> playlists)
-    {
-        Track = track;
-        Playlists = new ObservableCollection<PlaylistResponse>(playlists);
-    }
-
-    public TrackResponse Track { get; }
-    public ObservableCollection<PlaylistResponse> Playlists { get; }
-
-    private bool _isPlaying;
-    public bool IsPlaying
-    {
-        get => _isPlaying;
-        set => SetProperty(ref _isPlaying, value);
-    }
-
-    public PlaylistResponse? SelectedPlaylist
-    {
-        get => _selectedPlaylist;
-        set
-        {
-            if (!SetProperty(ref _selectedPlaylist, value)) return;
-            System.Windows.Input.CommandManager.InvalidateRequerySuggested();
-        }
-    }
-
-    public string? PreviewThumbnail => ThumbnailUrl;   // local path after download
-    public string? SourceUrl => TrackSourceUrlResolver.BuildUrl(SourceName, SourceId);
-    public string Name => Track.Name;
-    public string SourceName => Track.SourceName;
-    public string SourceId => Track.SourceId;
-    public string ThumbnailUrl => Track.ThumbnailUrl;
-    public TimeSpan Duration => Track.Duration;
-    public string DurationLabel => Duration.TotalHours >= 1
-        ? $"{(int)Duration.TotalHours}:{Duration.Minutes:00}:{Duration.Seconds:00}"
-        : Duration.ToString(@"mm\:ss");
+    #endregion
 }

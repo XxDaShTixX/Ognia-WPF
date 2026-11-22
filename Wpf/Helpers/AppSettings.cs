@@ -15,36 +15,24 @@ public class AppSettings
     public static AppSettings Instance => _instance ??= Load();
 
     /// <summary>
-    /// The account mode currently in use.
-    /// </summary>
-    [JsonConverter(typeof(JsonStringEnumConverter))]
-    public AppMode? Mode { get; set; }
-
-    /// <summary>
-    /// Currently active theme. 
-    /// Defaults to Default.json.
-    /// </summary>
-    public string ActiveTheme { get; set; } = "Default.json";
-
-    #region Settings File Structure
-    public UpdateSettings Update { get; set; } = new();
-    public ApiSettings Api { get; set; } = new();
-    public PlaybackSettings Playback { get; set; } = new();
-    public WindowSettings Window { get; set; } = new();
-    #endregion
-
-    /// <summary>
     /// The singleton instance.
     /// </summary>
     private static AppSettings? _instance;
 
-    /// <summary>
-    /// Initializes the AppSettings.
-    /// </summary>
-    public void Initialize()
-    {
-        
-    }
+    #region Settings File Structure
+    /// <summary>The account mode currently in use.</summary>
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public AppMode? Mode { get; set; }
+
+    /// <summary>Currently active theme.Defaults to Default.json.</summary>
+    public string ActiveTheme { get; set; } = "Default.json";
+
+    public UpdateSettings Update { get; set; } = new();
+    public ApiSettings Api { get; set; } = new();
+    public PlaybackSettings Playback { get; set; } = new();
+    public WindowSettings Window { get; set; } = new();
+    public List<int> PlaylistOrder { get; set; } = new();
+    #endregion
 
     /// <summary>
     /// Load settings from file into instance.
@@ -78,21 +66,35 @@ public class AppSettings
     }
 }
 
+/// <summary>
+/// Holds update settings and preferences.
+/// </summary>
 public class UpdateSettings
 {
+    /// <summary>
+    /// Determines if the auto-update featuer should be enabled or disabled.
+    /// Enabled by default. Can be set via the Settings view.
+    /// </summary>
     public bool AutoUpdateEnabled { get; set; } = true;
 
     /// <summary>
-    /// "stable" (default) or "prerelease". Controls whether pre-releases are considered updates.
+    /// "stable" or "prerelease". Controls whether pre-releases are considered when updating.
+    /// "stable" by defauly unless changed in Settings view.
     /// </summary>
     public string Channel { get; set; } = "stable";
 }
 
+/// <summary>
+/// Hold API settings and preferences.
+/// </summary>
 public class ApiSettings
 {
     public string BaseUrl { get; set; } = "https://localhost:7235/";
 }
 
+/// <summary>
+/// Holds Playback settings and preferences.
+/// </summary>
 public class PlaybackSettings
 {
     /// <summary>
@@ -112,17 +114,34 @@ public class PlaybackSettings
     public bool Shuffle { get; set; } = false;
 }
 
+/// <summary>
+/// Hold Window settings and preferences.
+/// </summary>
 public class WindowSettings
 {
+    /// <summary>
+    /// Application window width.
+    /// </summary>
     public double Width { get; set; } = 1200;
+
+    /// <summary>
+    /// Application window height.
+    /// </summary>
     public double Height { get; set; } = 800;
 
-    /// <summary>Main window opacity, 0.01–1.0.</summary>
+    /// <summary>
+    /// Main window opacity.
+    /// </summary>
     public double MainWindowOpacity { get; set; } = 1.0;
 
-    /// <summary>Mini player resting opacity, 0.01–1.0.</summary>
+    /// <summary>
+    /// Mini player resting opacity.
+    /// </summary>
     public double MiniRestingOpacity { get; set; } = 0.2;
 
+    /// <summary>
+    /// Current window state (Normal, Minimized, Maximized). Defaults to Normal.
+    /// </summary>
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public WindowState State { get; set; } = WindowState.Normal;
 }

@@ -67,16 +67,6 @@ public partial class MainWindow : Window
     [DllImport("dwmapi.dll", PreserveSig = true)]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int value, int size);
 
-    protected override void OnSourceInitialized(EventArgs e)
-    {
-        base.OnSourceInitialized(e);
-        var hwnd = new WindowInteropHelper(this).Handle;
-        int preference = 2;
-        DwmSetWindowAttribute(hwnd, 33, ref preference, sizeof(int));
-
-        RestoreWindowBounds();
-    }
-
     private void RestoreWindowBounds()
     {
         var w = AppSettings.Instance.Window;
@@ -141,6 +131,91 @@ public partial class MainWindow : Window
     }
 
     #region Window chrome
+    private const int WM_GETMINMAXINFO = 0x0024;
+    private const int MONITOR_DEFAULTTONEAREST = 0x00000002;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct POINT { public int X; public int Y; }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MINMAXINFO
+    {
+        public POINT ptReserved;
+        public POINT ptMaxSize;
+        public POINT ptMaxPosition;
+        public POINT ptMinTrackSize;
+        public POINT ptMaxTrackSize;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct RECT { public int Left, Top, Right, Bottom; }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MONITORINFO
+    {
+        public int cbSize;
+        public RECT rcMonitor;
+        public RECT rcWork;
+        public int dwFlags;
+    }
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromWindow(IntPtr hwnd, int flags);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+
+        var hwnd = new WindowInteropHelper(this).Handle;
+        var source = HwndSource.FromHwnd(hwnd);
+        source?.AddHook(WndProc);
+
+        int preference = 2;
+        DwmSetWindowAttribute(hwnd, 33, ref preference, sizeof(int));
+
+        RestoreWindowBounds();
+    }
+
+    private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (msg == WM_GETMINMAXINFO)
+        {
+            WmGetMinMaxInfo(hwnd, lParam);
+            handled = true;
+        }
+        return IntPtr.Zero;
+    }
+
+    private void WmGetMinMaxInfo(IntPtr hwnd, IntPtr lParam)
+    {
+        var mmi = Marshal.PtrToStructure<MINMAXINFO>(lParam);
+
+        var monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+        if (monitor != IntPtr.Zero)
+        {
+            var info = new MONITORINFO { cbSize = Marshal.SizeOf<MONITORINFO>() };
+            if (GetMonitorInfo(monitor, ref info))
+            {
+                // Maximize to the monitor's work area (excludes taskbar / auto-hide).
+                var work = info.rcWork;
+                var monitorRect = info.rcMonitor;
+
+                mmi.ptMaxPosition.X = work.Left - monitorRect.Left;
+                mmi.ptMaxPosition.Y = work.Top - monitorRect.Top;
+                mmi.ptMaxSize.X = work.Right - work.Left;
+                mmi.ptMaxSize.Y = work.Bottom - work.Top;
+
+                mmi.ptMinTrackSize.X = (int)MinWidth;
+                mmi.ptMinTrackSize.Y = (int)MinHeight;
+            }
+        }
+
+        Marshal.StructureToPtr(mmi, lParam, true);
+    }
+
     private void MinimizeButton_Click(object sender, RoutedEventArgs e)
     {
         if (_isMini) ExitMiniMode();

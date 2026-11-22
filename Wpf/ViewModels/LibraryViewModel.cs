@@ -1,4 +1,5 @@
-﻿using Ognia.Wpf.Models.Playlist;
+﻿using Ognia.Wpf.Helpers;
+using Ognia.Wpf.Models.Playlist;
 using Ognia.Wpf.Navigation;
 using Ognia.Wpf.Session;
 
@@ -28,6 +29,10 @@ public sealed class LibraryViewModel : ViewModelBase
             _ => Session.EndCreatePlaylist(),
             _ => Session.IsCreatingPlaylist);
 
+        DeletePlaylistCommand = new RelayCommand(
+            async p => await DeletePlaylistAsync(p as PlaylistResponse),
+            p => p is PlaylistResponse);
+
         _ = Session.LoadPlaylistsAsync();
     }
 
@@ -37,9 +42,9 @@ public sealed class LibraryViewModel : ViewModelBase
     public RelayCommand BeginCreatePlaylistCommand { get; }
     public RelayCommand ConfirmCreatePlaylistCommand { get; }
     public RelayCommand CancelCreatePlaylistCommand { get; }
+    public RelayCommand DeletePlaylistCommand { get; }
 
     #region Create playlist
-
     private async Task ConfirmCreatePlaylistAsync()
     {
         var name = Session.NewPlaylistName.Trim();
@@ -61,6 +66,30 @@ public sealed class LibraryViewModel : ViewModelBase
         Session.EndCreatePlaylist();
         await Session.LoadPlaylistsAsync();
         Session.SetStatus($"Created playlist: {name}");
+    }
+
+    /// <summary>
+    /// Moves <paramref name="dragged"/> to <paramref name="toIndex"/> in the
+    /// playlists collection, then persists the new order.
+    /// </summary>
+    public void MovePlaylist(PlaylistResponse dragged, int toIndex)
+    {
+        var full = Session.Playlists;
+        var fromIndex = full.IndexOf(dragged);
+        if (fromIndex < 0) return;
+        if (toIndex < 0 || toIndex >= full.Count || toIndex == fromIndex) return;
+
+        full.Move(fromIndex, toIndex);
+        Session.PersistPlaylistOrder();
+    }
+    #endregion
+
+    #region Delete playlist
+
+    private async Task DeletePlaylistAsync(PlaylistResponse? playlist)
+    {
+        if (playlist == null) return;
+        await Session.DeletePlaylistAsync(playlist);
     }
 
     #endregion

@@ -4,11 +4,30 @@
     <Grid>
         <DockPanel Style="{StaticResource PrimaryDockPanel}">
 
-            <TextBlock DockPanel.Dock="Top"
-                       Text="Library"
-                       Style="{StaticResource TitleText}"
-                       HorizontalAlignment="Left"
-                       Margin="0,0,0,10"/>
+            <!-- Header: title + create button -->
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                <TextBlock Text="Library"
+                           Style="{StaticResource TitleText}"
+                           HorizontalAlignment="Left"
+                           VerticalAlignment="Center"
+                           DockPanel.Dock="Left"/>
+                <Button Content="+"
+                        Command="{Binding BeginCreatePlaylistCommand}"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Center"
+                        ToolTip="Create playlist">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource IconButton}">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Session.IsCreatingPlaylist}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </DockPanel>
 
             <TextBlock DockPanel.Dock="Top" Text="Loading..."
                        Visibility="{Binding Session.IsLoading, Converter={StaticResource BoolToVisibility}}"/>
@@ -27,79 +46,50 @@
                         <Button Content="✓"
                                 Command="{Binding ConfirmCreatePlaylistCommand}"
                                 Style="{StaticResource IconButton}"
-                                Width="40" Height="40"
                                 ToolTip="Create"/>
                         <Button Content="✕"
                                 Command="{Binding CancelCreatePlaylistCommand}"
                                 Style="{StaticResource IconButton}"
-                                Width="40" Height="40"
                                 ToolTip="Cancel"/>
                     </StackPanel>
                 </StackPanel>
             </Border>
-            
-            <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <WrapPanel>
-                    <!-- Create Playlist tile -->
-                    <Grid Margin="8" Width="160" Height="160">
-                        <Border CornerRadius="12" Cursor="Hand"
-                                Style="{StaticResource HoverTile}"
-                                Background="{DynamicResource SidebarBackgroundColor}"
-                                MouseLeftButtonUp="CreatePlaylist_Click">
-                            <Border.Clip>
-                                <RectangleGeometry RadiusX="12" RadiusY="12" Rect="0,0,160,160"/>
-                            </Border.Clip>
-                            <StackPanel VerticalAlignment="Center">
-                                <Border Width="120" Height="120" HorizontalAlignment="Center"
-                                        CornerRadius="8" ClipToBounds="True"
-                                        Background="{DynamicResource TextboxBackgroundColor}"
-                                        Opacity="0.5">
-                                    <TextBlock Text="+"
-                                               FontSize="56"
-                                               Foreground="{DynamicResource DisabledTextColor}"
-                                               HorizontalAlignment="Center"
-                                               VerticalAlignment="Center"/>
-                                </Border>
-                                <TextBlock Text="Create Playlist"
-                                           TextTrimming="CharacterEllipsis"
-                                           HorizontalAlignment="Center"
-                                           Margin="0,8,0,0"
-                                           Style="{StaticResource PrimaryTextBlock}"/>
-                            </StackPanel>
-                        </Border>
-                    </Grid>
 
-                    <!-- Playlist tiles -->
-                    <ItemsControl ItemsSource="{Binding Session.Playlists}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <WrapPanel/>
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Grid Margin="8" Width="160" Height="160">
-                                    <Border CornerRadius="12" Cursor="Hand"
-                                            Style="{StaticResource HoverTile}"
-                                            Background="{DynamicResource SidebarBackgroundColor}">
-                                        <Border.InputBindings>
-                                            <MouseBinding MouseAction="LeftClick"
-                                                          Command="{Binding DataContext.OpenPlaylistCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                                          CommandParameter="{Binding}"/>
-                                        </Border.InputBindings>
-                                        <Border.Clip>
-                                            <RectangleGeometry RadiusX="12" RadiusY="12" Rect="0,0,160,160"/>
-                                        </Border.Clip>
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ItemsControl x:Name="PlaylistsControl"
+                              ItemsSource="{Binding Session.Playlists}"
+                              AllowDrop="True"
+                              PreviewMouseLeftButtonDown="PlaylistsControl_PreviewMouseLeftButtonDown"
+                              PreviewMouseMove="PlaylistsControl_PreviewMouseMove"
+                              DragOver="PlaylistsControl_DragOver"
+                              Drop="PlaylistsControl_Drop">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="8" Width="160" Height="160">
+                                <Border CornerRadius="12" Cursor="Hand"
+                                        Style="{StaticResource HoverTile}"
+                                        Background="{DynamicResource SidebarBackgroundColor}"
+                                        Tag="{Binding}"
+                                        MouseLeftButtonUp="PlaylistTile_Click">
+                                    <Border.Clip>
+                                        <RectangleGeometry RadiusX="12" RadiusY="12" Rect="0,0,160,160"/>
+                                    </Border.Clip>
+                                    <Grid>
                                         <StackPanel VerticalAlignment="Center">
                                             <Border Width="120" Height="120" HorizontalAlignment="Center"
-                                                    CornerRadius="8" ClipToBounds="True"
-                                                    Background="{DynamicResource TextboxBackgroundColor}">
+                                CornerRadius="8" ClipToBounds="True"
+                                Background="{DynamicResource TextboxBackgroundColor}">
                                                 <Border.Clip>
                                                     <RectangleGeometry RadiusX="8" RadiusY="8" Rect="0,0,120,120"/>
                                                 </Border.Clip>
                                                 <Grid>
                                                     <Image Source="{Binding CachedCoverPath, Converter={StaticResource StringToImageSource}}"
-                                                           Stretch="UniformToFill"/>
+                                       Stretch="UniformToFill"/>
 
                                                     <Grid>
                                                         <Grid.Style>
@@ -116,25 +106,68 @@
                                                             </Style>
                                                         </Grid.Style>
                                                         <TextBlock Text="♪"
-                                                                   FontSize="48"
-                                                                   Foreground="{DynamicResource DisabledTextColor}"
-                                                                   HorizontalAlignment="Center"
-                                                                   VerticalAlignment="Center"/>
+                                               FontSize="48"
+                                               Foreground="{DynamicResource DisabledTextColor}"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"/>
                                                     </Grid>
                                                 </Grid>
                                             </Border>
                                             <TextBlock Text="{Binding Name}"
-                                                       TextTrimming="CharacterEllipsis"
-                                                       HorizontalAlignment="Center"
-                                                       Margin="0,8,0,0"
-                                                       Style="{StaticResource PrimaryTextBlock}"/>
+                                   TextTrimming="CharacterEllipsis"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,8,0,0"
+                                   Style="{StaticResource PrimaryTextBlock}"/>
                                         </StackPanel>
-                                    </Border>
-                                </Grid>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </WrapPanel>
+
+                                        <!-- Hover-only delete button -->
+                                        <Button Content="🗑"
+                                                HorizontalAlignment="Right"
+                                                VerticalAlignment="Top"
+                                                Width="28" Height="28"
+                                                Margin="4"
+                                                FontSize="14"
+                                                Cursor="Hand"
+                                                BorderThickness="0"
+                                                ToolTip="Delete playlist"
+                                                Tag="{Binding}"
+                                                Click="PlaylistDelete_Click">
+                                            <Button.Style>
+                                                <Style TargetType="Button">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Setter Property="Background" Value="#CC000000"/>
+                                                    <Setter Property="Foreground" Value="{DynamicResource ErrorColor}"/>
+                                                    <Setter Property="Template">
+                                                        <Setter.Value>
+                                                            <ControlTemplate TargetType="Button">
+                                                                <Border Background="{TemplateBinding Background}"
+                                                                        CornerRadius="6"
+                                                                        SnapsToDevicePixels="True">
+                                                                    <ContentPresenter HorizontalAlignment="Center"
+                                                                                      VerticalAlignment="Center"
+                                                                                      TextElement.Foreground="{TemplateBinding Foreground}"/>
+                                                                </Border>
+                                                            </ControlTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Border}}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="{DynamicResource ErrorColor}"/>
+                                                            <Setter Property="Foreground" Value="White"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+                                    </Grid>
+                                </Border>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
             </ScrollViewer>
         </DockPanel>
     </Grid>

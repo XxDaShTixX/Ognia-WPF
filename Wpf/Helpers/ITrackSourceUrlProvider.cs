@@ -6,9 +6,13 @@
 /// </summary>
 public interface ITrackSourceUrlProvider
 {
-    /// <summary>Wire name used in TrackModel.SourceName / TrackResponse.SourceName.</summary>
+    /// <summary>
+    /// Wire name used in TrackModel.SourceName / TrackResponse.SourceName.
+    /// </summary>
     string SourceName { get; }
 
-    /// <summary>Returns the canonical URL, or null if the ID is invalid for this source.</summary>
+    /// <summary>
+    /// Returns the canonical URL, or null if the ID is invalid for this source.
+    /// </summary>
     string? BuildUrl(string sourceId);
 }
