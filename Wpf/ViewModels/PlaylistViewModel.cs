@@ -66,10 +66,15 @@ public sealed class PlaylistViewModel : ViewModelBase
 
         CancelAddTrackCommand = new RelayCommand(_ => CloseAddTrack(), _ => _isAddTrackOpen);
 
-        DeletePlaylistCommand = new RelayCommand(
-            async _ => await DeletePlaylistAsync(),
-            _ => Session.SelectedPlaylist != null
-                && !Session.IsBusy);
+        DeletePlaylistCommand = new RelayCommand(async _ =>
+        {
+            if (Session.SelectedPlaylist == null) return;
+            await Session.DeletePlaylistAsync(Session.SelectedPlaylist);
+            _nav.ShowLibrary();
+        },
+        _ => Session.SelectedPlaylist != null
+            && !Session.IsBusy);
+
 
         Session.PlayRequested += t => _ = _playback.PlayTrackAsync(t);
 

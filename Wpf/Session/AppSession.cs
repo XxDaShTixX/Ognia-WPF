@@ -199,7 +199,7 @@ public sealed class AppSession : ViewModelBase
 
     #endregion
 
-    #region Playlist loading
+    #region Playlist Loading
 
     public async Task LoadPlaylistsAsync()
     {
@@ -220,7 +220,7 @@ public sealed class AppSession : ViewModelBase
             }
 
             Playlists.Clear();
-            foreach (var p in result.Data)
+            foreach (var p in ApplyPlaylistOrder(result.Data))
                 Playlists.Add(p);
 
             foreach (var p in Playlists)
@@ -244,6 +244,31 @@ public sealed class AppSession : ViewModelBase
         {
             _suppressAutoSwap = false;
         }
+    }
+
+    /// <summary>
+    /// Returns playlists ordered by the user's saved order, then by Id for any
+    /// playlists not yet in the saved order (e.g. newly created).
+    /// </summary>
+    private static IEnumerable<PlaylistResponse> ApplyPlaylistOrder(IEnumerable<PlaylistResponse> source)
+    {
+        var saved = AppSettings.Instance.PlaylistOrder;
+        var rank = new Dictionary<int, int>();
+        for (var i = 0; i < saved.Count; i++)
+            rank[saved[i]] = i;
+
+        return source
+            .OrderBy(p => rank.TryGetValue(p.Id, out var r) ? r : int.MaxValue)
+            .ThenBy(p => p.Id);
+    }
+
+    /// <summary>
+    /// Persists the current <see cref="Playlists"/> order to settings.
+    /// </summary>
+    public void PersistPlaylistOrder()
+    {
+        AppSettings.Instance.PlaylistOrder = Playlists.Select(p => p.Id).ToList();
+        AppSettings.Instance.Save();
     }
 
     private async Task RestorePlaybackAsync(PlaylistResponse playlist)
@@ -338,6 +363,58 @@ public sealed class AppSession : ViewModelBase
     {
         IsCreatingPlaylist = false;
         NewPlaylistName = string.Empty;
+    }
+
+    #endregion
+
+    #region Playlist Deletion
+
+    /// <summary>
+    /// Deletes a playlist: confirms, removes from repo, wipes local folder,
+    /// clears selection if it was open, reloads playlists, persists order.
+    /// Shared by LibraryView (tile trash) and PlaylistView (header trash).
+    /// </summary>
+    /// <returns>True if the playlist was deleted.</returns>
+    public async Task<bool> DeletePlaylistAsync(PlaylistResponse playlist)
+    {
+        if (playlist == null) return false;
+
+        var confirm = System.Windows.MessageBox.Show(
+            $"Delete playlist \"{playlist.Name}\"?\n\n" +
+            "This removes all tracks in the playlist and deletes their downloaded files.",
+            "Delete playlist",
+            System.Windows.MessageBoxButton.YesNo,
+            System.Windows.MessageBoxImage.Warning);
+
+        if (confirm != System.Windows.MessageBoxResult.Yes) return false;
+
+        var deleted = false;
+
+        await RunBusyAsync(async () =>
+        {
+            var result = await Repo.DeletePlaylistAsync(playlist.Id);
+            if (!result.Success)
+            {
+                SetError(result.Error ?? "Failed to delete playlist.");
+                return;
+            }
+
+            LocalLibrary.DeletePlaylistFolder(playlist.Name);
+
+            if (SelectedPlaylist?.Id == playlist.Id)
+            {
+                SelectedPlaylist = null;
+                SelectedPlaylistTracks.Clear();
+                FilteredPlaylistTracks.Clear();
+            }
+
+            await LoadPlaylistsAsync();
+            PersistPlaylistOrder();
+            SetStatus($"Deleted playlist '{playlist.Name}'.");
+            deleted = true;
+        });
+
+        return deleted;
     }
 
     #endregion

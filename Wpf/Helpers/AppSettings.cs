@@ -31,6 +31,7 @@ public class AppSettings
     public ApiSettings Api { get; set; } = new();
     public PlaybackSettings Playback { get; set; } = new();
     public WindowSettings Window { get; set; } = new();
+    public List<int> PlaylistOrder { get; set; } = new();
     #endregion
 
     /// <summary>

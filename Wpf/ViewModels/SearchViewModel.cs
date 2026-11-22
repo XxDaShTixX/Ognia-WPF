@@ -1,5 +1,4 @@
 ﻿using Ognia.Wpf.Local;
-using Ognia.Wpf.Models.Track;
 using Ognia.Wpf.Session;
 using System.Collections.ObjectModel;
 using System.Windows.Input;

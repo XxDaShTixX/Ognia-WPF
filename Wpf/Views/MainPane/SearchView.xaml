@@ -2,35 +2,27 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Grid>
-        <DockPanel Style="{StaticResource PrimaryDockPanel}">
-
+        <DockPanel Style="{StaticResource PrimaryDockPanel}" LastChildFill="False">
+            <!-- Search Title -->
             <TextBlock DockPanel.Dock="Top"
                        Text="Search"
                        Style="{StaticResource TitleText}"
                        HorizontalAlignment="Left"
                        Margin="0,0,0,10"/>
 
+            <!-- Search Section -->
             <StackPanel DockPanel.Dock="Top"
                         Orientation="Horizontal"
                         Margin="0,0,0,8">
+                <!-- Search Textbox-->
                 <TextBox Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}"
                          Width="400"
                          KeyDown="QueryBox_KeyDown"/>
+                <!-- Search Button -->
                 <Button Content="Search"
                         Command="{Binding SearchCommand}"
                         Style="{StaticResource PrimaryButton}"/>
-            </StackPanel>
-
-            <StackPanel DockPanel.Dock="Top"
-                        Orientation="Horizontal"
-                        Margin="0,0,0,8">
-                <TextBox Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}"
-                         Width="400"
-                         KeyDown="QueryBox_KeyDown"/>
-                <Button Content="Search"
-                        Command="{Binding SearchCommand}"
-                        Style="{StaticResource PrimaryButton}"/>
-
+                <!-- Per Page-->
                 <TextBlock Text="Per page"
                            VerticalAlignment="Center"
                            Margin="16,0,6,0"
@@ -40,20 +32,35 @@
                           ItemsSource="{Binding PageSizeOptions}"
                           SelectedItem="{Binding PageSize, Mode=TwoWay}"/>
             </StackPanel>
-
+            
+            <!-- Status Textbox -->
             <TextBlock DockPanel.Dock="Top"
                        Text="{Binding Status}"
                        Margin="0,0,0,8"
                        Foreground="{DynamicResource DisabledTextColor}"
                        Style="{StaticResource PrimaryTextBlock}"/>
 
-            <TextBlock DockPanel.Dock="Top"
-                       Text="{Binding Status}"
-                       Margin="0,0,0,8"
-                       Foreground="{DynamicResource DisabledTextColor}"
-                       Style="{StaticResource PrimaryTextBlock}"/>
+            <!-- Bottom bar: declare BEFORE the ScrollViewer -->
+            <StackPanel DockPanel.Dock="Bottom"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Center"
+                        Margin="0,8,0,0">
+                <Button Content="◀ Prev"
+                        Command="{Binding PrevPageCommand}"
+                        Style="{StaticResource PrimaryButton}"
+                        Width="100"/>
+                <TextBlock Text="{Binding PageLabel}"
+                            VerticalAlignment="Center"
+                            Margin="12,0"
+                            Style="{StaticResource PrimaryTextBlock}"/>
+                <Button Content="Next ▶"
+                        Command="{Binding NextPageCommand}"
+                        Style="{StaticResource PrimaryButton}"
+                        Width="100"/>
+            </StackPanel>
 
-            <ScrollViewer VerticalScrollBarVisibility="Auto"
+            <ScrollViewer DockPanel.Dock="Top"
+                          VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled">
                 <ItemsControl ItemsSource="{Binding Results}">
                     <ItemsControl.ItemTemplate>
@@ -139,24 +146,6 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </ScrollViewer>
-
-            <StackPanel DockPanel.Dock="Bottom"
-                        Orientation="Horizontal"
-                        HorizontalAlignment="Center"
-                        Margin="0,8,0,0">
-                <Button Content="◀ Prev"
-                        Command="{Binding PrevPageCommand}"
-                        Style="{StaticResource PrimaryButton}"
-                        Width="100"/>
-                <TextBlock Text="{Binding PageLabel}"
-                           VerticalAlignment="Center"
-                           Margin="12,0"
-                           Style="{StaticResource PrimaryTextBlock}"/>
-                <Button Content="Next ▶"
-                        Command="{Binding NextPageCommand}"
-                        Style="{StaticResource PrimaryButton}"
-                        Width="100"/>
-            </StackPanel>
         </DockPanel>
     </Grid>
 </UserControl>
