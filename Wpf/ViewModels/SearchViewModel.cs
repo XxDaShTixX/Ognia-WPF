@@ -174,14 +174,20 @@ public sealed class SearchViewModel : ViewModelBase
 
         try
         {
+            Session.SetStatus($"Preparing preview: {row.Name}");
+
             var downloader = new PreviewDownloader();
-            var path = await downloader.DownloadAsync(row.Track);
+            var progress = new Progress<double>(p =>
+            {
+                // p is 0..1 from YoutubeExplode.
+                var pct = (int)Math.Round(p * 100);
+                Session.SetStatus($"Downloading preview: {row.Name} — {pct}%");
+            });
+
+            var path = await downloader.DownloadAsync(row.Track, progress);
 
             Session.SetStatus($"Previewing: {row.Name}");
 
-            // Play the downloaded temp file through the existing preview path.
-            // CurrentTrack is cleared inside PlayLocalFile, so the playback bar
-            // renders NowPlayingThumbnail/NowPlayingSourceUrl from the preview fields.
             Session.Playback.PlayLocalFile(
                 path,
                 row.Name,
