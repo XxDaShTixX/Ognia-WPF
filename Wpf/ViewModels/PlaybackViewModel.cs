@@ -2,6 +2,7 @@
 using Ognia.Wpf.Enums;
 using Ognia.Wpf.Helpers;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Windows.Input;
 using System.Windows.Threading;
 
@@ -434,9 +435,9 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
             SetPreviewThumbnail(thumbnailPath, sourceUrl);
             try
             {
-                System.IO.File.AppendAllText(
-    System.IO.Path.Combine(AppPaths.AppDataFolder, "preview.log"),
-    $"{DateTime.Now:O} path={path} thumb={thumbnailPath ?? "<null>"} preview={_previewThumbnail ?? "<null>"} currentTrack={_currentTrack?.Name ?? "<null>"}\n");
+                File.AppendAllText(
+                Path.Combine(AppPaths.AppDataFolder, "preview.log"),
+                $"{DateTime.Now:O} path={path} thumb={thumbnailPath ?? "<null>"} preview={_previewThumbnail ?? "<null>"} currentTrack={_currentTrack?.Name ?? "<null>"}\n");
             }
             catch { }
             NotifyPlaybackChanged();

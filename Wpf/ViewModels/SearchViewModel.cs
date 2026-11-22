@@ -169,24 +169,29 @@ public sealed class SearchViewModel : ViewModelBase
     {
         if (row == null) return;
 
-        // Reset any other row's playing flag.
         foreach (var r in Results) r.IsPlaying = false;
         row.IsPlaying = true;
 
-        // Preview = download-to-temp then play. Reuses the session's downloader path
-        // for a one-shot preview; no playlist binding.
         try
         {
             var downloader = new PreviewDownloader();
             var path = await downloader.DownloadAsync(row.Track);
 
             Session.SetStatus($"Previewing: {row.Name}");
-            // TODO: hook into PlaybackViewModel for a real preview stream.
-            _ = path;
+
+            // Play the downloaded temp file through the existing preview path.
+            // CurrentTrack is cleared inside PlayLocalFile, so the playback bar
+            // renders NowPlayingThumbnail/NowPlayingSourceUrl from the preview fields.
+            Session.Playback.PlayLocalFile(
+                path,
+                row.Name,
+                thumbnailPath: row.ThumbnailUrl,
+                sourceUrl: row.SourceUrl);
         }
         catch (Exception ex)
         {
             Session.SetError($"Preview failed: {ex.Message}");
+            row.IsPlaying = false;
         }
     }
 
