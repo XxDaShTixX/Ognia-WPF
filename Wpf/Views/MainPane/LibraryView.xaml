@@ -15,10 +15,33 @@
                         Command="{Binding BeginCreatePlaylistCommand}"
                         HorizontalAlignment="Left"
                         VerticalAlignment="Center"
+                        FontSize="24"
+                        Padding="0"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center"
                         ToolTip="Create playlist">
                     <Button.Style>
                         <Style TargetType="Button" BasedOn="{StaticResource IconButton}">
                             <Setter Property="Visibility" Value="Visible"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}"
+                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                CornerRadius="4"
+                                                SnapsToDevicePixels="True">
+                                            <TextBlock Text="{TemplateBinding Content}"
+                                                       FontSize="{TemplateBinding FontSize}"
+                                                       Foreground="{TemplateBinding Foreground}"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"
+                                                       TextAlignment="Center"
+                                                       Margin="0,0,0,2"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding Session.IsCreatingPlaylist}" Value="True">
                                     <Setter Property="Visibility" Value="Collapsed"/>

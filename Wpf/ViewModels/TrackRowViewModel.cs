@@ -39,7 +39,19 @@ public class TrackRowViewModel : ViewModelBase
     public RelayCommand RemoveDownloadCommand { get; }
 
     public TrackResponse Track { get; }
-    public string? LocalFilePath => LocalLibrary.FindLocalFile(PlaylistName, Name);
+    public string? LocalFilePath => _previewFilePath ?? LocalLibrary.FindLocalFile(PlaylistName, Name);
+
+    /// <summary>
+    /// Overrides the local file path for one-shot previews. When set,
+    /// <see cref="LocalFilePath"/> returns this instead of resolving via playlist folder.
+    /// </summary>
+    private string? _previewFilePath;
+    public void MarkPreviewFile(string path)
+    {
+        _previewFilePath = path;
+        OnPropertyChanged(nameof(LocalFilePath));
+        OnPropertyChanged(nameof(IsDownloaded));
+    }
 
     private string _playlistName;
     public string PlaylistName
@@ -66,7 +78,7 @@ public class TrackRowViewModel : ViewModelBase
 
     public bool IsDownloaded
     {
-        get => _isDownloaded;
+        get => _previewFilePath != null || _isDownloaded;
         set
         {
             if (!SetProperty(ref _isDownloaded, value)) return;

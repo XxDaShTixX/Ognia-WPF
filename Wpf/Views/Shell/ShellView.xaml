@@ -20,7 +20,10 @@
 
         <Border Grid.Row="1" Grid.ColumnSpan="3"
                 Background="{DynamicResource SidebarBackgroundColor}"
-                Padding="10,8">
+                CornerRadius="10"
+                Margin="10"
+                Padding="10"
+                ClipToBounds="True">
             <ContentControl x:Name="PlaybackContent"/>
         </Border>
 
