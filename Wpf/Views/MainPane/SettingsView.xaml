@@ -12,6 +12,7 @@
 
             <ScrollViewer VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled">
+                
                 <StackPanel>
 
                     <!-- Account -->
@@ -24,9 +25,9 @@
                                Style="{StaticResource PrimaryTextBlock}"/>
 
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        
                         <Button Content="Upgrade Account"
                                 Click="Upgrade_Click"
-                                IsEnabled="False"
                                 ToolTip="Upgrade guest to account (coming soon)"
                                 Visibility="{Binding IsGuestMode, Converter={StaticResource BoolToVisibility}}"/>
 
@@ -38,8 +39,9 @@
                     <Separator Width="500"/>
 
                     <!-- Password section -->
-                    <StackPanel Width="500" HorizontalAlignment="Center"
+                    <StackPanel HorizontalAlignment="Center"
                                 Visibility="{Binding IsAccountMode, Converter={StaticResource BoolToVisibility}}">
+                        
                         <TextBlock Text="Current password" Style="{StaticResource PrimaryTextBlock}"/>
                         <PasswordBox PasswordChanged="CurrentPasswordBox_PasswordChanged"/>
 
@@ -53,45 +55,74 @@
 
                         <Separator Width="500"/>
                     </StackPanel>
-
+                    
                     <!-- Library -->
-                    <TextBlock Text="Library"
-                               HorizontalAlignment="Center"
-                               Style="{StaticResource SubtitleText}"/>
+                    <StackPanel HorizontalAlignment="Center" >
 
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <Button Content="Export"
-                                Click="ExportLibrary_Click"
-                                ToolTip="Export"
-                                Visibility="{Binding IsGuestMode, Converter={StaticResource BoolToVisibility}}"/>
+                        <!-- Title -->
+                        <TextBlock Text="Library"
+                                   HorizontalAlignment="Center"
+                                   Style="{StaticResource SubtitleText}"/>
+   
+                        <!-- Buttons -->
+                        <StackPanel Orientation="Horizontal" 
+                                    HorizontalAlignment="Center">
 
-                        <Button Content="Import"
-                                Click="ImportLibrary_Click"
-                                ToolTip="Import"
-                                Visibility="{Binding IsGuestMode, Converter={StaticResource BoolToVisibility}}"/>
+                            <Button Content="Export"
+                                    Click="ExportLibrary_Click"
+                                    ToolTip="Export"/>
+
+                            <Button Content="Import"
+                                    Click="ImportLibrary_Click"
+                                    ToolTip="Import"/>
+                            
+                        </StackPanel>
+                        
+                        <Separator Width="500"/>
+
                     </StackPanel>
 
-                    <Separator Width="500"/>
-
                     <!-- Appearance -->
-                    <TextBlock Text="Appearance"
-                               HorizontalAlignment="Center"
-                               Style="{StaticResource SubtitleText}"/>
+                    <StackPanel Width="400"
+                                HorizontalAlignment="Center"
+                                Margin="0,8,0,0">
 
-                    <!-- Theme -->
-                    <ComboBox Width="200"
-                              HorizontalAlignment="Center"
-                              ItemsSource="{Binding AvailableThemes}"
-                              SelectedItem="{Binding SelectedTheme, Mode=TwoWay}">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding Name}"/>
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
-                    
+                        <TextBlock Text="Appearance"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,20"
+                                   Style="{StaticResource SubtitleText}"/>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0"
+                                       Text="Theme"
+                                       VerticalAlignment="Center"
+                                       Style="{StaticResource PrimaryTextBlock}"/>
+
+                            <ComboBox Grid.Column="1"
+                                      Width="200"
+                                      HorizontalAlignment="Right"
+                                      ItemsSource="{Binding AvailableThemes}"
+                                      SelectedItem="{Binding SelectedTheme, Mode=TwoWay}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Name}"/>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </Grid>
+
+                    </StackPanel>
+
                     <!-- Transparency -->
-                    <StackPanel Width="400" HorizontalAlignment="Center" Margin="0,8,0,0">
+                    <StackPanel HorizontalAlignment="Center" 
+                                Width="400"
+                                Margin="0,8,0,0">
+                        <!-- Main Window Opacity -->
                         <TextBlock Text="Main Window Opacity"
                                    HorizontalAlignment="Left"
                                    Style="{StaticResource PrimaryTextBlock}"/>
@@ -115,6 +146,7 @@
                                        Style="{StaticResource PrimaryTextBlock}"/>
                         </Grid>
 
+                        <!-- Mini Player Opacity -->
                         <TextBlock Text="Mini Player Opacity"
                                    HorizontalAlignment="Left"
                                    Margin="0,8,0,0"
@@ -138,6 +170,7 @@
                                        Foreground="{DynamicResource DisabledTextColor}"
                                        Style="{StaticResource PrimaryTextBlock}"/>
                         </Grid>
+                        
                     </StackPanel>
 
                     <Separator Width="500"/>
@@ -223,9 +256,11 @@
                                     Style="{StaticResource PrimaryButton}"
                                     Width="30" Height="30"/>
                         </Grid>
+                        
+                        <Separator Width="500"/>
+                        
                     </StackPanel>
 
-                    <Separator Width="500"/>
 
                     <!-- Updates -->
                     <TextBlock Text="Updates"

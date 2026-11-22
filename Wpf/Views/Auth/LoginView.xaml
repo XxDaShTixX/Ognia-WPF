@@ -26,7 +26,6 @@
                         Command="{Binding ShowLoginFormCommand}"
                         Style="{StaticResource PrimaryButton}"
                         Width="240"
-                        IsEnabled="False"
                         HorizontalAlignment="Center"/>
             </StackPanel>
 
@@ -43,13 +42,7 @@
                         Style="{StaticResource IconButton}"
                         Width="40" Height="40"
                         ToolTip="Back"/>
-
-                <Image Source="/Assets/Brand/Logo/Ognia.png"
-                       Width="56" Height="56"
-                       HorizontalAlignment="Center"
-                       Margin="0,0,0,10"
-                       RenderOptions.BitmapScalingMode="HighQuality"/>
-
+                
                 <TextBlock Text="Log In" Style="{StaticResource TitleText}"/>
 
                 <TextBlock Text="Email" Style="{StaticResource PrimaryTextBlock}"/>

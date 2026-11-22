@@ -148,17 +148,26 @@ public sealed class AppNavigator : IAppNavigator
         try
         {
             var store = new LocalLibraryStore();
-            var library = store.Load();
+            var library = store.LoadFrom(_pendingUpgradePath);
 
             var uploader = new LibraryUploader(new ApiMusicRepo(_api));
-            var (playlists, skipped, error) = await uploader.UploadAsync(library);
+            var (playlists, added, skipped, invalid, error) = await uploader.UploadAsync(library);
 
             if (error != null)
-                MessageBox.Show($"Upgrade failed: {error}", "Upgrade", MessageBoxButton.OK, MessageBoxImage.Warning);
+            {
+                MessageBox.Show($"Upgrade failed: {error}", "Upgrade",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
             else
-                MessageBox.Show(
-                    $"Uploaded {playlists} playlist(s). {skipped} track(s) skipped.",
-                    "Upgrade complete", MessageBoxButton.OK, MessageBoxImage.Information);
+            {
+                var msg = $"Uploaded {playlists} playlist(s), {added} URL(s). " +
+                          $"{skipped} already present.";
+                if (invalid.Count > 0)
+                    msg += $" {invalid.Count} URL(s) could not be imported.";
+
+                MessageBox.Show(msg, "Upgrade complete",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            }
         }
         finally
         {
@@ -177,6 +186,7 @@ public sealed class AppNavigator : IAppNavigator
         DisposeShell();
 
         var session = new AppSession(repo);
+        session.Transfer = LibraryTransferFactory.Create(repo, isGuest: repo is LocalMusicRepo);
         _session = session;
 
         var playback = new PlaybackViewModel();

@@ -66,6 +66,25 @@ public class LocalLibraryStore
         }
     }
 
+    /// <summary>
+    /// Reads a library json from an arbitrary path (used by import paths that
+    /// stage a file before merging). Returns an empty model on any failure.
+    /// </summary>
+    public LocalLibraryFileModel LoadFrom(string path)
+    {
+        try
+        {
+            if (!File.Exists(path)) return new LocalLibraryFileModel();
+            var json = File.ReadAllText(path);
+            return JsonSerializer.Deserialize<LocalLibraryFileModel>(json, Options)
+                   ?? new LocalLibraryFileModel();
+        }
+        catch
+        {
+            return new LocalLibraryFileModel();
+        }
+    }
+
     public (bool Success, string? Error, int PlaylistsImported) ImportFrom(string sourcePath)
     {
         try
@@ -84,29 +103,49 @@ public class LocalLibraryStore
 
             var current = Load();
 
-            // Merge: dedupe tracks by (SourceName, SourceId), playlists by name.
+            // Merge: dedupe tracks by (SourceName, SourceId). Playlists are matched by name;
+            // an existing same-named playlist receives any new tracks from the incoming one.
+            // Tracks[] in the incoming file are only added if some incoming link references them.
             var importedPlaylists = 0;
 
             foreach (var incomingPlaylist in incoming.Playlists)
             {
-                if (current.Playlists.Any(p => string.Equals(p.Name, incomingPlaylist.Name, StringComparison.OrdinalIgnoreCase)))
-                    continue;
+                var target = current.Playlists.FirstOrDefault(p =>
+                    string.Equals(p.Name, incomingPlaylist.Name, StringComparison.OrdinalIgnoreCase));
 
-                var nextPlaylistId = current.Playlists.Count == 0
-                    ? 1
-                    : current.Playlists.Max(p => p.Id) + 1;
+                var isNewPlaylist = target == null;
 
-                var newPlaylist = new LocalPlaylistModel
+                if (isNewPlaylist)
                 {
-                    Id = nextPlaylistId,
-                    Name = incomingPlaylist.Name,
-                    CreatedAt = incomingPlaylist.CreatedAt
-                };
+                    var nextPlaylistId = current.Playlists.Count == 0
+                        ? 1
+                        : current.Playlists.Max(p => p.Id) + 1;
+
+                    target = new LocalPlaylistModel
+                    {
+                        Id = nextPlaylistId,
+                        Name = incomingPlaylist.Name,
+                        CreatedAt = incomingPlaylist.CreatedAt
+                    };
+                    current.Playlists.Add(target);
+                }
+
+                // Source identities already linked to the target playlist.
+                var linkedKeys = target!.Tracks
+                    .Select(pt => current.Tracks.FirstOrDefault(t => t.Id == pt.TrackId))
+                    .Where(t => t != null)
+                    .Select(t => (t!.SourceName, t.SourceId))
+                    .ToHashSet();
+
+                var addedAny = false;
 
                 foreach (var incomingLink in incomingPlaylist.Tracks.OrderBy(t => t.Position))
                 {
                     var incomingTrack = incoming.Tracks.FirstOrDefault(t => t.Id == incomingLink.TrackId);
                     if (incomingTrack == null) continue;
+
+                    var key = (incomingTrack.SourceName, incomingTrack.SourceId);
+                    if (linkedKeys.Contains(key)) continue;
 
                     var existingTrack = current.Tracks.FirstOrDefault(t =>
                         t.SourceName == incomingTrack.SourceName && t.SourceId == incomingTrack.SourceId);
@@ -130,23 +169,23 @@ public class LocalLibraryStore
                         current.Tracks.Add(existingTrack);
                     }
 
-                    if (newPlaylist.Tracks.Any(pt => pt.TrackId == existingTrack.Id))
-                        continue;
-
-                    var nextPosition = newPlaylist.Tracks.Count == 0
+                    var nextPosition = target.Tracks.Count == 0
                         ? 0
-                        : newPlaylist.Tracks.Max(pt => pt.Position) + 1;
+                        : target.Tracks.Max(pt => pt.Position) + 1;
 
-                    newPlaylist.Tracks.Add(new LocalPlaylistTrackModel
+                    target.Tracks.Add(new LocalPlaylistTrackModel
                     {
                         TrackId = existingTrack.Id,
                         Position = nextPosition,
                         AddedAt = DateTime.UtcNow
                     });
+
+                    linkedKeys.Add(key);
+                    addedAny = true;
                 }
 
-                current.Playlists.Add(newPlaylist);
-                importedPlaylists++;
+                if (isNewPlaylist || addedAny)
+                    importedPlaylists++;
             }
 
             Save(current);
