@@ -181,7 +181,7 @@ public sealed class SearchViewModel : ViewModelBase
             {
                 // p is 0..1 from YoutubeExplode.
                 var pct = (int)Math.Round(p * 100);
-                Session.SetStatus($"Downloading preview: {row.Name} — {pct}%");
+                Session.SetStatus($"[{pct}%] {row.Name}");
             });
 
             var path = await downloader.DownloadAsync(row.Track, progress);
