@@ -99,6 +99,56 @@ To cut a release:
 
 Installed apps check GitHub on startup, download any newer release in the background, and apply it on exit. The new version runs the next time the app launches.
 
+## 🔖 Versioning
+
+Ognia loosely follows Semantic Versioning while the project remains pre-1.0.
+
+### Release guidelines
+
+```text
+0.x.0   → New user-facing features
+0.x.y   → Bug fixes, polish, refactors, UI/UX improvements
+```
+
+Examples:
+
+```text
+0.1.0
+- Search
+- Preview playback
+- Auto-updates
+
+0.1.1
+- Playlist drag-and-drop
+- Playlist deletion improvements
+- Window maximize fix
+
+0.2.0
+- Smart playlists
+- Lyrics support
+- Other major functionality
+```
+
+### Pre-releases
+
+```text
+0.2.0-alpha.1
+0.2.0-beta.1
+```
+
+- Alpha = active testing
+- Beta = feature complete, needs broader testing
+- No suffix = stable release
+
+### Quick reference
+
+```text
+New feature?       → 0.x.0
+Fix or polish?     → 0.x.y
+Testing build?     → -alpha.n / -beta.n
+Ready for users?   → Stable release
+```
+
 ## 📁 Where files live
 
 **Audio** — `%USERPROFILE%\Music\Ognia\<playlist>\<track>.m4a` (per-playlist folder).
