@@ -29,7 +29,7 @@ A Windows music player that turns YouTube links into a local, offline-capable li
 - **Account sync:** Email/password login with JWT + refresh tokens, password reset/change, and one-click guest-to-account library upload (requires [Ognia-Server](https://github.com/XxDaShTixX/Ognia-Server))
 - **Library portability:** Export and import the guest library as JSON
 - **Playlists:** Create, rename, delete, reorder, and batch-download all tracks with status bar progress
-- **Tracks:** Add by YouTube URL, rename, remove
+- **Tracks:** Add by YouTube URL, rename, remove, manage multiple tracks
 - **Playback controls:** Play/pause, stop, next/previous, seek, volume, mute, repeat (off/all/one), and shuffle
 - **Auto-generated covers:** 2×2 playlist covers stitched from track thumbnails
 - **Mini player:** Compact, always-on-top window with hover-to-reveal fade
