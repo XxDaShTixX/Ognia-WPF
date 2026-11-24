@@ -95,6 +95,20 @@ public class TrackRowViewModel : ViewModelBase
         set => SetProperty(ref _isPlaying, value);
     }
 
+    private bool _isSelected;
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set
+        {
+            if (!SetProperty(ref _isSelected, value)) return;
+            SelectionChanged?.Invoke(this, value);
+        }
+    }
+
+    /// <summary>Raised when <see cref="IsSelected"/> toggles. Wired by AppSession.</summary>
+    public event Action<TrackRowViewModel, bool>? SelectionChanged;
+
     private int _displayOrder;
     public int DisplayOrder
     {

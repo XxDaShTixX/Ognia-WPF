@@ -287,10 +287,10 @@
                             <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ListItemHoverColor}"/>
                             <Setter Property="Foreground" Value="{DynamicResource LightTextColor}"/>
                         </Trigger>
-                        <Trigger Property="IsSelected" Value="True">
+                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
                             <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ListItemSelectedColor}"/>
                             <Setter Property="Foreground" Value="{DynamicResource LightTextColor}"/>
-                        </Trigger>
+                        </DataTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
@@ -382,10 +382,10 @@
                             <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ListItemHoverColor}"/>
                             <Setter Property="Foreground" Value="{DynamicResource LightTextColor}"/>
                         </Trigger>
-                        <Trigger Property="IsSelected" Value="True">
+                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
                             <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ListItemSelectedColor}"/>
                             <Setter Property="Foreground" Value="{DynamicResource LightTextColor}"/>
-                        </Trigger>
+                        </DataTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
@@ -399,6 +399,18 @@
         <Setter Property="BorderBrush" Value="{DynamicResource ListItemBorderColor}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Padding" Value="6,4"/>
+    </Style>
+
+    <!-- =============== CHECKBOX =============== -->
+    <Style TargetType="CheckBox">
+        <Setter Property="Background" Value="{DynamicResource SidebarBackgroundColor}"/>
+        <Setter Property="Foreground" Value="{DynamicResource LightTextColor}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ListItemBorderColor}"/>
+        <Style.Triggers>
+            <Trigger Property="IsChecked" Value="True">
+                <Setter Property="Background" Value="{DynamicResource ButtonPressedColor}"/>
+            </Trigger>
+        </Style.Triggers>
     </Style>
 
     <!-- =============== SEPARATOR =============== -->

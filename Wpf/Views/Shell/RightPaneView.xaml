@@ -14,7 +14,7 @@
                     Content="✕"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Top"
-                    Width="32" Height="30"
+                    Width="30" Height="30"
                     FontSize="14"
                     Cursor="Hand"
                     Foreground="{DynamicResource LightTextColor}"

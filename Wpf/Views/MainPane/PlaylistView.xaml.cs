@@ -11,12 +11,45 @@ public partial class PlaylistView : UserControl
     private Point _dragStart;
     private TrackRowViewModel? _dragItem;
 
-    public PlaylistView() => InitializeComponent();
+    public PlaylistView()
+    {
+        InitializeComponent();
+    }
 
     private void TracksList_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         _dragStart = e.GetPosition(TracksList);
+
+        // Don't hijack clicks on interactive controls inside a row.
+        if (IsInteractiveSource(e.OriginalSource as DependencyObject))
+        {
+            _dragItem = null;
+            return;
+        }
+
         _dragItem = GetItemUnderMouse(e.OriginalSource as DependencyObject);
+        if (_dragItem == null) return;
+        if (DataContext is not PlaylistViewModel vm) return;
+
+        var session = vm.Session;
+        var ctrl = (Keyboard.Modifiers & ModifierKeys.Control) != 0;
+        var shift = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
+
+        if (shift)
+        {
+            session.SelectRange(_dragItem, additive: ctrl);
+        }
+        else if (ctrl)
+        {
+            session.ToggleSelection(_dragItem);
+        }
+        else
+        {
+            // The ListBox remains in Multiple mode for range interaction, so
+            // clear its native visual selection for a plain row click.
+            TracksList.SelectedItems.Clear();
+            session.SelectSingle(_dragItem);
+        }
     }
 
     private void TracksList_PreviewMouseMove(object sender, MouseEventArgs e)
@@ -83,5 +116,17 @@ public partial class PlaylistView : UserControl
             source = System.Windows.Media.VisualTreeHelper.GetParent(source);
 
         return (source as ListBoxItem)?.DataContext as TrackRowViewModel;
+    }
+
+    private static bool IsInteractiveSource(DependencyObject? source)
+    {
+        while (source != null)
+        {
+            if (source is Button or CheckBox or ComboBox or ComboBoxItem or Slider or TextBox)
+                return true;
+
+            source = System.Windows.Media.VisualTreeHelper.GetParent(source);
+        }
+        return false;
     }
 }

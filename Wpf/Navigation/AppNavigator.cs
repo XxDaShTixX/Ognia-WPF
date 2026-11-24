@@ -21,6 +21,7 @@ public sealed class AppNavigator : IAppNavigator
     private PlaybackViewModel? _playback;
     private DownloadViewModel? _download;
     private TrackDetailsViewModel? _rightVm;
+    private MultiTrackSelectionViewModel? _multiVm;
     private string? _pendingUpgradePath;
     private ShellView? _shell;
 
@@ -205,13 +206,10 @@ public sealed class AppNavigator : IAppNavigator
         RightContentChanged += shell.SetRightContent;
 
         _rightVm = new TrackDetailsViewModel(session);
+        _multiVm = new MultiTrackSelectionViewModel(session);
         session.Details = _rightVm;
 
-        session.PropertyChanged += (_, e) =>
-        {
-            if (e.PropertyName == nameof(AppSession.SelectedTrack))
-                RefreshRightPane();
-        };
+        session.SelectionChanged += RefreshRightPane;
 
         ShowLibrary();
 
@@ -220,26 +218,48 @@ public sealed class AppNavigator : IAppNavigator
             DataContext = new PlaybackBarViewModel(session, playback, download)
         });
 
+        RefreshRightPane();
         _setScreen(shell);
     }
 
     private void RefreshRightPane()
     {
-        if (_session == null || _rightVm == null) return;
+        if (_session == null) { RightContentChanged?.Invoke(null); return; }
 
+        if (_session.HasMultiSelection && _multiVm != null)
+        {
+            _multiVm.OnPropertyChangedPublic();
+            RightContentChanged?.Invoke(new MultiTrackActionsView { DataContext = _multiVm });
+            return;
+        }
+
+        if (_rightVm == null || _session.SelectedTrack == null)
+        {
+            RightContentChanged?.Invoke(null);
+            return;
+        }
+
+        // Fresh view per selection — kills stale-binding and stale-CanExecute issues.
+        // The VM instance is preserved, so its subscriptions stay alive.
         _rightVm.Refresh();
-
-        var show = _session.SelectedTrack != null;
-        RightContentChanged?.Invoke(show ? new TrackDetailsView { DataContext = _rightVm } : null);
+        RightContentChanged?.Invoke(new TrackDetailsView { DataContext = _rightVm });
     }
 
     public void DisposeShell()
     {
+        if (_session != null)
+        {
+            _session.SelectionChanged -= RefreshRightPane;
+            _session.Details = null;
+        }
+
+        _rightVm?.Dispose();
+        _rightVm = null;
+        _multiVm = null;
+
         _playback?.Dispose();
         _playback = null;
         _download = null;
-        _rightVm = null;
-        _session?.Details = null;
         _session = null;
         _shell = null;
         MainContentChanged = null;

@@ -45,7 +45,7 @@
                                    HorizontalAlignment="Left"
                                    Margin="0,0,0,4"/>
 
-                        <!-- Actions row -->
+                        <!-- Playlist Actions -->
                         <Grid Grid.Row="2">
                             <Grid.Style>
                                 <Style TargetType="Grid">
@@ -103,7 +103,7 @@
                                         Width="40" Height="40"
                                         ToolTip="Filter tracks in this playlist"/>
                             </StackPanel>
-
+                            
                             <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
                                 <Button Content="✎"
                                         Command="{Binding RenamePlaylistCommand}"
@@ -123,7 +123,7 @@
                             </StackPanel>
                         </Grid>
 
-                        <!-- Rename input -->
+                        <!-- Rename Prompt -->
                         <StackPanel Grid.Row="3" Margin="0,4,0,0"
                                     Visibility="{Binding IsRenameOpen, Converter={StaticResource BoolToVisibility}}">
                             <TextBlock Text="New name" Style="{StaticResource PrimaryTextBlock}"/>
@@ -139,7 +139,7 @@
                             </StackPanel>
                         </StackPanel>
 
-                        <!-- Add-track input -->
+                        <!-- Add Track Prompt -->
                         <StackPanel Grid.Row="4" Margin="0,4,0,0"
                                     Visibility="{Binding IsAddTrackOpen, Converter={StaticResource BoolToVisibility}}">
                             <TextBlock Text="Track or playlist URL" Style="{StaticResource PrimaryTextBlock}"/>
@@ -155,7 +155,7 @@
                             </StackPanel>
                         </StackPanel>
 
-                        <!-- Filter input -->
+                        <!-- Filter Playlist Prompt -->
                         <StackPanel Grid.Row="5" Margin="0,4,0,0"
                                     Orientation="Horizontal"
                                     Visibility="{Binding Session.PlaylistFilterOpen, Converter={StaticResource BoolToVisibility}}">
@@ -171,9 +171,9 @@
                 </Grid>
             </Border>
 
+            <!-- Track List -->
             <ListBox x:Name="TracksList"
                      ItemsSource="{Binding Session.FilteredPlaylistTracks}"
-                     SelectedItem="{Binding Session.SelectedTrack}"
                      HorizontalContentAlignment="Stretch"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                      ScrollViewer.VerticalScrollBarVisibility="Auto"
@@ -181,12 +181,14 @@
                      PreviewMouseLeftButtonDown="TracksList_PreviewMouseLeftButtonDown"
                      PreviewMouseMove="TracksList_PreviewMouseMove"
                      DragOver="TracksList_DragOver"
-                     Drop="TracksList_Drop">
+                     Drop="TracksList_Drop"
+                     SelectionMode="Multiple">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <StackPanel>
                             <Grid Margin="0,2" HorizontalAlignment="Stretch">
                                 <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="20"/>
                                     <ColumnDefinition Width="30"/>
@@ -195,20 +197,26 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
 
-                                <Button Grid.Column="0"
+                                <CheckBox Grid.Column="0"
+                                          IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                          VerticalAlignment="Center"
+                                          Margin="0,0,6,0"
+                                          ToolTip="Select track"/>
+
+                                <Button Grid.Column="1"
                                         Content="▶"
                                         Command="{Binding PlayCommand}"
                                         Style="{StaticResource IconButton}"
                                         Width="28" Height="28" Margin="0,0,6,0"
                                         ToolTip="Play this track"/>
 
-                                <TextBlock Grid.Column="1" Text="{Binding DownloadedLabel}" Foreground="Green" VerticalAlignment="Center"/>
-                                <TextBlock Grid.Column="2"
+                                <TextBlock Grid.Column="2" Text="{Binding DownloadedLabel}" Foreground="Green" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="3"
                                            Text="{Binding DisplayOrder}"
                                            Foreground="Gray"
                                            VerticalAlignment="Center"/>
 
-                                <Border Grid.Column="3" Width="32" Height="32" CornerRadius="4"
+                                <Border Grid.Column="4" Width="32" Height="32" CornerRadius="4"
                                         Background="{DynamicResource TextboxBackgroundColor}"
                                         VerticalAlignment="Center" HorizontalAlignment="Left"
                                         ClipToBounds="True">
@@ -218,7 +226,7 @@
                                            VerticalAlignment="Center"/>
                                 </Border>
 
-                                <TextBlock Grid.Column="4" Text="{Binding Name}"
+                                <TextBlock Grid.Column="5" Text="{Binding Name}"
                                            TextTrimming="CharacterEllipsis"
                                            VerticalAlignment="Center">
                                     <TextBlock.Style>
@@ -233,7 +241,7 @@
                                         </Style>
                                     </TextBlock.Style>
                                 </TextBlock>
-                                <TextBlock Grid.Column="5" Text="{Binding Duration}"
+                                <TextBlock Grid.Column="6" Text="{Binding Duration}"
                                            Foreground="Gray"
                                            VerticalAlignment="Center"
                                            Margin="0,0,8,0"/>
