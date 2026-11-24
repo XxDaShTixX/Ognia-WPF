@@ -1,20 +1,26 @@
 ﻿using Ognia.Wpf.Helpers;
 using Ognia.Wpf.Session;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Windows;
 
 namespace Ognia.Wpf.ViewModels;
 
 /// <summary>
-/// Right-pane data context. Shows only the selected track's details and actions.
-/// Playlist details and actions live in the playlist header (center pane).
+/// Right-pane data context for a single selected track.
+/// Self-refreshing: subscribes to <see cref="AppSession"/> so the view can be
+/// constructed once and reused without the host having to call Refresh().
 /// </summary>
-public sealed class TrackDetailsViewModel : ViewModelBase
+public sealed class TrackDetailsViewModel : ViewModelBase, IDisposable
 {
     private readonly AppSession _session;
 
+    private TrackRowViewModel? _observedRow;
+
     private string _renameInput = string.Empty;
     private bool _isRenameOpen;
+
+    private Models.Playlist.PlaylistResponse? _moveTarget;
 
     public TrackDetailsViewModel(AppSession session)
     {
@@ -34,9 +40,7 @@ public sealed class TrackDetailsViewModel : ViewModelBase
 
         RemoveTrackCommand = new RelayCommand(
             async _ => await RemoveTrackAsync(),
-            _ => SelectedTrack != null 
-                && SelectedPlaylist != null
-                && !_session.IsBusy);
+            _ => SelectedTrack != null && SelectedPlaylist != null && !_session.IsBusy);
 
         DownloadCommand = new RelayCommand(
             _ => _session.Download.DownloadTrackCommand.Execute(null),
@@ -51,9 +55,16 @@ public sealed class TrackDetailsViewModel : ViewModelBase
             _ => OpenLocation(),
             _ => SelectedTrack != null
                  && LocalLibrary.FindLocalFile(SelectedTrack.PlaylistName, SelectedTrack.Name) != null);
+
+        MoveCommand = new RelayCommand(
+            async _ => await MoveToPlaylistAsync(),
+            _ => _moveTarget != null && SelectedTrack != null && SelectedPlaylist != null && !_session.IsBusy);
+
+        _session.PropertyChanged += OnSessionPropertyChanged;
+        ObserveSelectedTrack(_session.SelectedTrack);
     }
 
-    #region State
+    #region Observed state
 
     private TrackRowViewModel? SelectedTrack => _session.SelectedTrack;
     private Models.Playlist.PlaylistResponse? SelectedPlaylist => _session.SelectedPlaylist;
@@ -97,6 +108,19 @@ public sealed class TrackDetailsViewModel : ViewModelBase
         }
     }
 
+    public IEnumerable<Models.Playlist.PlaylistResponse> MoveTargets =>
+        _session.Playlists.Where(p => p.Id != SelectedPlaylist?.Id);
+
+    public Models.Playlist.PlaylistResponse? MoveTarget
+    {
+        get => _moveTarget;
+        set
+        {
+            if (!SetProperty(ref _moveTarget, value)) return;
+            System.Windows.Input.CommandManager.InvalidateRequerySuggested();
+        }
+    }
+
     #endregion
 
     #region Commands
@@ -108,10 +132,53 @@ public sealed class TrackDetailsViewModel : ViewModelBase
     public RelayCommand DownloadCommand { get; }
     public RelayCommand RemoveDownloadCommand { get; }
     public RelayCommand OpenLocationCommand { get; }
+    public RelayCommand MoveCommand { get; }
 
     #endregion
 
-    public void Refresh()
+    #region Session wiring
+
+    private void OnSessionPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(AppSession.SelectedTrack))
+            ObserveSelectedTrack(_session.SelectedTrack);
+
+        RaiseDependents();
+    }
+
+    private void ObserveSelectedTrack(TrackRowViewModel? row)
+    {
+        if (ReferenceEquals(_observedRow, row)) return;
+
+        if (_observedRow != null) _observedRow.PropertyChanged -= OnRowPropertyChanged;
+        _observedRow = row;
+        if (_observedRow != null) _observedRow.PropertyChanged += OnRowPropertyChanged;
+
+        // Selection change resets transient state.
+        _moveTarget = null;
+        _isRenameOpen = false;
+        _renameInput = string.Empty;
+    }
+
+    private void OnRowPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        // Only re-raise the ones the pane binds to.
+        switch (e.PropertyName)
+        {
+            case nameof(TrackRowViewModel.ThumbnailPath):
+                OnPropertyChanged(nameof(TrackThumbnailPath));
+                break;
+            case nameof(TrackRowViewModel.Name):
+                OnPropertyChanged(nameof(TrackName));
+                break;
+            case nameof(TrackRowViewModel.IsDownloaded):
+                OnPropertyChanged(nameof(HasTrack));
+                System.Windows.Input.CommandManager.InvalidateRequerySuggested();
+                break;
+        }
+    }
+
+    private void RaiseDependents()
     {
         OnPropertyChanged(nameof(HasTrack));
         OnPropertyChanged(nameof(TrackName));
@@ -119,8 +186,24 @@ public sealed class TrackDetailsViewModel : ViewModelBase
         OnPropertyChanged(nameof(TrackDuration));
         OnPropertyChanged(nameof(TrackDurationLabel));
         OnPropertyChanged(nameof(TrackSourceUrl));
+        OnPropertyChanged(nameof(IsRenameOpen));
+        OnPropertyChanged(nameof(RenameInput));
+        OnPropertyChanged(nameof(MoveTarget));
+        OnPropertyChanged(nameof(MoveTargets));
         System.Windows.Input.CommandManager.InvalidateRequerySuggested();
     }
+
+    /// <summary>Kept for the host's convenience; the VM self-refreshes anyway.</summary>
+    public void Refresh() => RaiseDependents();
+
+    public void Dispose()
+    {
+        _session.PropertyChanged -= OnSessionPropertyChanged;
+        if (_observedRow != null) _observedRow.PropertyChanged -= OnRowPropertyChanged;
+        _observedRow = null;
+    }
+
+    #endregion
 
     #region Rename
 
@@ -147,7 +230,6 @@ public sealed class TrackDetailsViewModel : ViewModelBase
             return;
         }
 
-        // Reject duplicates within the open playlist before hitting the API.
         var clash = _session.SelectedPlaylistTracks
             .Any(t => t.Id != SelectedTrack.Id
                       && string.Equals(t.Name, newName, StringComparison.OrdinalIgnoreCase));
@@ -179,13 +261,12 @@ public sealed class TrackDetailsViewModel : ViewModelBase
         _session.SelectedTrack = _session.SelectedPlaylistTracks.FirstOrDefault(t => t.Id == trackId);
 
         CloseRename();
-        Refresh();
         _session.SetStatus($"Renamed track to '{newName}'");
     }
 
     #endregion
 
-    #region Remove / cleanup
+    #region Remove / move / cleanup
 
     private async Task RemoveTrackAsync()
     {
@@ -218,6 +299,30 @@ public sealed class TrackDetailsViewModel : ViewModelBase
             await _session.LoadPlaylistsAsync();
 
             _session.SetStatus($"Removed '{removed.Name}' from playlist");
+        });
+    }
+
+    private async Task MoveToPlaylistAsync()
+    {
+        if (SelectedTrack == null || SelectedPlaylist == null || _moveTarget == null) return;
+
+        var source = SelectedPlaylist;
+        var target = _moveTarget;
+        var trackId = SelectedTrack.Id;
+
+        await _session.RunBusyAsync(async () =>
+        {
+            var result = await _session.Repo.MoveTracksAsync(source.Id, target.Id, new[] { trackId });
+
+            await _session.ReloadSelectedPlaylistTracksAsync();
+            await _session.LoadPlaylistsAsync();
+
+            if (result.Errors.Count > 0)
+                _session.SetError($"Move failed: {result.Errors[0]}");
+            else if (result.Skipped > 0)
+                _session.SetStatus($"Already present in '{target.Name}'; removed from source.");
+            else
+                _session.SetStatus($"Moved track to '{target.Name}'.");
         });
     }
 

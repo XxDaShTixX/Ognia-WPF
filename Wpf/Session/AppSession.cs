@@ -1,5 +1,6 @@
 ﻿using Ognia.Wpf.Helpers;
 using Ognia.Wpf.Models.Playlist;
+using Ognia.Wpf.Models.Track;
 using Ognia.Wpf.Repos;
 using Ognia.Wpf.Services;
 using Ognia.Wpf.ViewModels;
@@ -54,6 +55,47 @@ public sealed class AppSession : ViewModelBase
 
     public ObservableCollection<PlaylistResponse> Playlists { get; } = new();
     public ObservableCollection<TrackRowViewModel> SelectedPlaylistTracks { get; }
+
+    /// <summary>Tracks currently checked across the open playlist.</summary>
+    public ObservableCollection<TrackRowViewModel> SelectedTracks { get; } = new();
+
+    public bool HasMultiSelection => SelectedTracks.Count > 1;
+
+    public int SelectedTrackCount => SelectedTracks.Count;
+
+    /// <summary>
+    /// Fires on every user-driven selection change (mouse, checkbox, range)
+    /// so hosts can refresh the right pane even when <see cref="SelectedTrack"/>
+    /// did not itself transition. Not raised by programmatic reload.
+    /// </summary>
+    public event Action? SelectionChanged;
+
+    private void RaiseSelectionChanged()
+    {
+        OnPropertyChanged(nameof(HasMultiSelection));
+        OnPropertyChanged(nameof(SelectedTrackCount));
+        SelectionChanged?.Invoke();
+    }
+
+    private void OnRowSelectionChanged(TrackRowViewModel row, bool selected)
+    {
+        if (selected)
+        {
+            if (!SelectedTracks.Contains(row)) SelectedTracks.Add(row);
+        }
+        else
+        {
+            SelectedTracks.Remove(row);
+        }
+
+        if (SelectedTracks.Count == 1) SelectedTrack = SelectedTracks[0];
+        else if (SelectedTracks.Count == 0 && SelectedTrack != null && !SelectedPlaylistTracks.Contains(SelectedTrack)) SelectedTrack = null;
+
+        if (selected) SelectionAnchor = row;
+        else if (ReferenceEquals(SelectionAnchor, row)) SelectionAnchor = null;
+
+        RaiseSelectionChanged();
+    }
 
     /// <summary>
     /// Filtered view of <see cref="SelectedPlaylistTracks"/> bound by PlaylistView.
@@ -314,6 +356,8 @@ public sealed class AppSession : ViewModelBase
         SelectedPlaylistTracks.Clear();
         FilteredPlaylistTracks.Clear();
         SelectedTrack = null;
+        SelectedTracks.Clear();
+        SelectionAnchor = null;
 
         if (Playback != null)
             Playback.Tracks = SelectedPlaylistTracks;
@@ -333,14 +377,18 @@ public sealed class AppSession : ViewModelBase
         }
 
         foreach (var t in result.Data.Tracks)
-            SelectedPlaylistTracks.Add(new TrackRowViewModel(
+        {
+            var row = new TrackRowViewModel(
                 t, SelectedPlaylist.Name,
                 OnRowPlayRequested,
                 OnRowMoreRequested,
                 OnRowRenameRequested,
                 OnRowRemoveRequested,
                 OnRowDownloadRequested,
-                OnRowRemoveDownloadRequested));
+                OnRowRemoveDownloadRequested);
+            row.SelectionChanged += OnRowSelectionChanged;
+            SelectedPlaylistTracks.Add(row);
+        }
 
         ReindexTracks();
 
@@ -501,6 +549,229 @@ public sealed class AppSession : ViewModelBase
     public Action<TrackRowViewModel> OnRowRemoveRequestedPublic => OnRowRemoveRequested;
     public Action<TrackRowViewModel> OnRowDownloadRequestedPublic => OnRowDownloadRequested;
     public Action<TrackRowViewModel> OnRowRemoveDownloadRequestedPublic => OnRowRemoveDownloadRequested;
+
+    #endregion
+
+    #region Bulk Operations
+
+    /// <summary>
+    /// Removes every checked track from the current playlist. Wipes local files
+    /// for those tracks. Clears selection on success.
+    /// </summary>
+    public async Task<BulkTrackResult> RemoveSelectedTracksAsync()
+    {
+        var playlist = SelectedPlaylist;
+        if (playlist == null) return new BulkTrackResult(0, 0, Array.Empty<string>());
+
+        var rows = SelectedTracks.ToList();
+        if (rows.Count == 0) return new BulkTrackResult(0, 0, Array.Empty<string>());
+
+        var ids = rows.Select(r => r.Id).ToList();
+        var playlistName = playlist.Name;
+
+        BulkTrackResult result = new(0, 0, Array.Empty<string>());
+
+        await RunBusyAsync(async () =>
+        {
+            result = await Repo.RemoveTracksAsync(playlist.Id, ids);
+
+            foreach (var row in rows)
+            {
+                LocalLibrary.DeleteLocalFile(playlistName, row.Name);
+                LocalLibrary.DeleteLocalThumbnail(playlistName, row.Name);
+            }
+
+            await ReloadSelectedPlaylistTracksAsync();
+            await LoadPlaylistsAsync();
+
+            if (result.Errors.Count == 0)
+                SetStatus($"Removed {result.Processed} track(s) from '{playlistName}'.");
+            else
+                SetError($"{result.Errors.Count} track(s) failed: {result.Errors[0]}");
+        });
+
+        return result;
+    }
+
+    /// <summary>
+    /// Copies every checked track to <paramref name="target"/>. Tracks already in
+    /// the target are skipped. Selection is preserved (copy is non-destructive).
+    /// </summary>
+    public async Task<BulkTrackResult> CopySelectedTracksAsync(PlaylistResponse target)
+    {
+        var source = SelectedPlaylist;
+        if (source == null || target == null) return new BulkTrackResult(0, 0, Array.Empty<string>());
+
+        var ids = SelectedTracks.Select(r => r.Id).ToList();
+        if (ids.Count == 0) return new BulkTrackResult(0, 0, Array.Empty<string>());
+
+        BulkTrackResult result = new(0, 0, Array.Empty<string>());
+
+        await RunBusyAsync(async () =>
+        {
+            result = await Repo.CopyTracksAsync(source.Id, target.Id, ids);
+            await LoadPlaylistsAsync();
+
+            var msg = $"Copied {result.Processed} to '{target.Name}'.";
+            if (result.Skipped > 0) msg += $" {result.Skipped} already present.";
+            if (result.Errors.Count > 0) SetError(msg + $" {result.Errors.Count} failed.");
+            else SetStatus(msg);
+        });
+
+        return result;
+    }
+
+    /// <summary>
+    /// Moves every checked track from the current playlist to <paramref name="target"/>.
+    /// On success the moved rows disappear from the current playlist and selection is cleared.
+    /// </summary>
+    public async Task<BulkTrackResult> MoveSelectedTracksAsync(PlaylistResponse target)
+    {
+        var source = SelectedPlaylist;
+        if (source == null || target == null) return new BulkTrackResult(0, 0, Array.Empty<string>());
+
+        var ids = SelectedTracks.Select(r => r.Id).ToList();
+        if (ids.Count == 0) return new BulkTrackResult(0, 0, Array.Empty<string>());
+
+        BulkTrackResult result = new(0, 0, Array.Empty<string>());
+
+        await RunBusyAsync(async () =>
+        {
+            result = await Repo.MoveTracksAsync(source.Id, target.Id, ids);
+
+            await ReloadSelectedPlaylistTracksAsync();
+            await LoadPlaylistsAsync();
+
+            var msg = $"Moved {result.Processed} to '{target.Name}'.";
+            if (result.Skipped > 0) msg += $" {result.Skipped} already present (removed from source).";
+            if (result.Errors.Count > 0) SetError(msg + $" {result.Errors.Count} failed.");
+            else SetStatus(msg);
+        });
+
+        return result;
+    }
+
+    /// <summary>
+    /// Downloads every checked, not-yet-downloaded track sequentially.
+    /// </summary>
+    public async Task DownloadSelectedTracksAsync()
+    {
+        var rows = SelectedTracks.Where(t => !t.IsDownloaded).ToList();
+        if (rows.Count == 0) return;
+
+        var completed = 0;
+        var failed = 0;
+        foreach (var row in rows)
+        {
+            SetStatus($"Downloading {completed + 1}/{rows.Count}: {row.Name}");
+            if (await Download.EnsureDownloadedAsync(row)) completed++;
+            else failed++;
+        }
+
+        if (failed > 0) SetError($"{failed} of {rows.Count} download(s) failed.");
+        else SetStatus($"Downloaded {completed} track(s).");
+    }
+
+    /// <summary>Deletes local files for every checked, downloaded track.</summary>
+    public void RemoveDownloadsForSelected()
+    {
+        var rows = SelectedTracks.Where(t => t.IsDownloaded).ToList();
+        if (rows.Count == 0) return;
+
+        var failed = 0;
+        foreach (var row in rows)
+        {
+            if (LocalLibrary.DeleteLocalFile(row.PlaylistName, row.Name)) row.IsDownloaded = false;
+            else failed++;
+            LocalLibrary.DeleteLocalThumbnail(row.PlaylistName, row.Name);
+        }
+
+        if (failed > 0) SetError($"{failed} file(s) could not be deleted.");
+        else SetStatus($"Removed downloads for {rows.Count} track(s).");
+    }
+
+    #endregion
+
+    #region Row Selection
+
+    /// <summary>
+    /// Row whose selection the last plain or Ctrl click established.
+    /// Shift+click uses this as the range start. Null when nothing is selected.
+    /// </summary>
+    public TrackRowViewModel? SelectionAnchor { get; private set; }
+
+    /// <summary>
+    /// Applies a plain click: clears every other row, selects <paramref name="row"/>.
+    /// </summary>
+    public void SelectSingle(TrackRowViewModel row)
+    {
+        if (row == null) return;
+
+        foreach (var r in SelectedPlaylistTracks)
+            if (!ReferenceEquals(r, row)) r.IsSelected = false;
+
+        row.IsSelected = true;
+
+        SelectionAnchor = row;
+        SelectedTrack = row;
+
+        RaiseSelectionChanged();
+    }
+
+    /// <summary>
+    /// Applies a Ctrl+click: toggles <paramref name="row"/>.
+    /// </summary>
+    public void ToggleSelection(TrackRowViewModel row)
+    {
+        if (row == null) return;
+        row.IsSelected = !row.IsSelected;
+        SelectionAnchor = row;
+
+        if (row.IsSelected && SelectedTracks.Count == 1) SelectedTrack = row;
+
+        RaiseSelectionChanged();
+    }
+
+    /// <summary>
+    /// Applies a Shift+click: selects the contiguous range from the anchor to
+    /// <paramref name="row"/> in <see cref="SelectedPlaylistTracks"/> order.
+    /// When <paramref name="additive"/> is true (Ctrl+Shift), rows outside the
+    /// range are left untouched; otherwise the existing selection is cleared.
+    /// If there is no anchor, behaves like <see cref="SelectSingle"/>.
+    /// </summary>
+    public void SelectRange(TrackRowViewModel row, bool additive)
+    {
+        if (row == null) return;
+
+        if (SelectionAnchor == null || !SelectedPlaylistTracks.Contains(SelectionAnchor))
+        {
+            SelectSingle(row);
+            return;
+        }
+
+        var anchor = SelectionAnchor;
+        var list = SelectedPlaylistTracks;
+        var a = list.IndexOf(anchor);
+        var b = list.IndexOf(row);
+        if (a < 0 || b < 0) { SelectSingle(row); return; }
+
+        var lo = Math.Min(a, b);
+        var hi = Math.Max(a, b);
+
+        if (!additive)
+            foreach (var r in list) r.IsSelected = false;
+
+        for (var i = lo; i <= hi; i++)
+            list[i].IsSelected = true;
+
+        if (SelectedTracks.Count == 1) SelectedTrack = SelectedTracks[0];
+        else if (SelectedTracks.Count != 1) SelectedTrack = null;
+
+        SelectionAnchor = anchor;
+        RaiseSelectionChanged();
+
+        // Anchor stays at the original click so subsequent Shift+clicks extend from it.
+    }
 
     #endregion
 }

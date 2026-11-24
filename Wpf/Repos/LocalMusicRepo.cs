@@ -373,6 +373,108 @@ public class LocalMusicRepo : IMusicRepo
         return Task.FromResult<(bool, string?, TrackUsageResponse?)>((true, null, new TrackUsageResponse { PlaylistCount = count }));
     }
 
+    public Task<BulkTrackResult> RemoveTracksAsync(int playlistId, IReadOnlyList<int> trackIds)
+    {
+        var library = _store.Load();
+        var playlist = library.Playlists.FirstOrDefault(p => p.Id == playlistId);
+        if (playlist == null)
+            return Task.FromResult(new BulkTrackResult(0, 0, new[] { "Playlist not found." }));
+
+        var idSet = trackIds.ToHashSet();
+        var removed = playlist.Tracks.RemoveAll(t => idSet.Contains(t.TrackId));
+        PruneOrphanTracks(library, idSet);
+        _store.Save(library);
+
+        return Task.FromResult(new BulkTrackResult(removed, 0, Array.Empty<string>()));
+    }
+
+    public Task<BulkTrackResult> CopyTracksAsync(
+        int sourcePlaylistId, int targetPlaylistId, IReadOnlyList<int> trackIds)
+    {
+        var library = _store.Load();
+        var source = library.Playlists.FirstOrDefault(p => p.Id == sourcePlaylistId);
+        var target = library.Playlists.FirstOrDefault(p => p.Id == targetPlaylistId);
+        if (source == null || target == null)
+            return Task.FromResult(new BulkTrackResult(0, 0, new[] { "Playlist not found." }));
+
+        var alreadyInTarget = target.Tracks.Select(t => t.TrackId).ToHashSet();
+        var sourceTrackIds = source.Tracks.Select(t => t.TrackId).ToHashSet();
+
+        var processed = 0;
+        var skipped = 0;
+        var errors = new List<string>();
+
+        foreach (var id in trackIds)
+        {
+            if (!sourceTrackIds.Contains(id)) { errors.Add($"Track {id} not found in source."); continue; }
+            if (alreadyInTarget.Contains(id)) { skipped++; continue; }
+
+            var nextPos = target.Tracks.Count == 0 ? 0 : target.Tracks.Max(t => t.Position) + 1;
+            target.Tracks.Add(new LocalPlaylistTrackModel
+            {
+                TrackId = id,
+                Position = nextPos,
+                AddedAt = DateTime.UtcNow
+            });
+            alreadyInTarget.Add(id);
+            processed++;
+        }
+
+        _store.Save(library);
+        return Task.FromResult(new BulkTrackResult(processed, skipped, errors));
+    }
+
+    public Task<BulkTrackResult> MoveTracksAsync(
+        int sourcePlaylistId, int targetPlaylistId, IReadOnlyList<int> trackIds)
+    {
+        var library = _store.Load();
+        var source = library.Playlists.FirstOrDefault(p => p.Id == sourcePlaylistId);
+        var target = library.Playlists.FirstOrDefault(p => p.Id == targetPlaylistId);
+        if (source == null || target == null)
+            return Task.FromResult(new BulkTrackResult(0, 0, new[] { "Playlist not found." }));
+
+        var alreadyInTarget = target.Tracks.Select(t => t.TrackId).ToHashSet();
+        var sourceTrackIds = source.Tracks.Select(t => t.TrackId).ToHashSet();
+
+        var skipped = 0;
+        var moved = 0;
+        var errors = new List<string>();
+        var removedIds = new HashSet<int>();
+
+        foreach (var id in trackIds)
+        {
+            if (!sourceTrackIds.Contains(id)) { errors.Add($"Track {id} not found in source."); continue; }
+
+            if (!alreadyInTarget.Contains(id))
+            {
+                var nextPos = target.Tracks.Count == 0 ? 0 : target.Tracks.Max(t => t.Position) + 1;
+                target.Tracks.Add(new LocalPlaylistTrackModel
+                {
+                    TrackId = id,
+                    Position = nextPos,
+                    AddedAt = DateTime.UtcNow
+                });
+                alreadyInTarget.Add(id);
+            }
+            else
+            {
+                skipped++;
+            }
+
+            removedIds.Add(id);
+            moved++;
+        }
+
+        if (removedIds.Count > 0)
+        {
+            source.Tracks.RemoveAll(t => removedIds.Contains(t.TrackId));
+            PruneOrphanTracks(library, removedIds);
+        }
+
+        _store.Save(library);
+        return Task.FromResult(new BulkTrackResult(moved, skipped, errors));
+    }
+
     #endregion
 
     #region Helpers
