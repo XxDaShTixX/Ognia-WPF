@@ -1,4 +1,5 @@
-﻿using NAudio.Wave;
+﻿using NAudio.CoreAudioApi;
+using NAudio.Wave;
 using Ognia.Wpf.Enums;
 using Ognia.Wpf.Helpers;
 using System.Collections.ObjectModel;
@@ -10,8 +11,15 @@ namespace Ognia.Wpf.ViewModels;
 
 public class PlaybackViewModel : ViewModelBase, IDisposable
 {
-    private readonly WaveOut _waveOut = new();
+    /// <summary>
+    /// Shared-mode WASAPI buffer. 200 ms is generous enough to survive CPU/disk
+    /// pressure without a dropout, tight enough that seek feels instant.
+    /// </summary>
+    private const int WasapiLatencyMs = 500;
+
+    private IWavePlayer? _output;
     private AudioFileReader? _reader;
+    private MemoryStream? _readerStream;
     private readonly DispatcherTimer _positionTimer;
     private readonly Random _random = new();
 
@@ -25,18 +33,22 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
     private string _nowPlaying = string.Empty;
     private TrackRowViewModel? _currentTrack;
     private bool _disposed;
-
+    private volatile bool _isTearingDownOutput;
+    private readonly SemaphoreSlim _outputGate = new(1, 1);
+    private int _outputGeneration;
 
     public PlaybackViewModel()
     {
+        // _output is created lazily by StartOutput() on each track start.
+        // NAudio's WasapiOut is single-use per Init, and we deliberately
+        // recreate it on a TIME_CRITICAL thread for each track.
+
         _positionTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _positionTimer.Tick += OnTimerTick;
         _positionTimer.Start();
 
-        // Restore last-used state.
         var saved = AppSettings.Instance.Playback;
         _volume = Math.Clamp(saved.Volume, 0.0, 1.0);
-        _waveOut.Volume = (float)_volume;
         _repeatMode = saved.RepeatMode;
         _isShuffleOn = saved.Shuffle;
 
@@ -47,6 +59,91 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
         ToggleMuteCommand = new RelayCommand(_ => ToggleMute());
         CycleRepeatCommand = new RelayCommand(_ => CycleRepeat());
         ToggleShuffleCommand = new RelayCommand(_ => IsShuffleOn = !IsShuffleOn);
+    }
+
+    /// <summary>
+    /// Builds and initializes a <see cref="WasapiOut"/> on a dedicated
+    /// TIME_CRITICAL thread so the audio pull loop is not preempted by
+    /// CPU-heavy background work (shader compiles, video encodes, etc).
+    /// Falls back to WaveOutEvent on any failure — degraded but audible.
+    /// </summary>
+    private async Task<IWavePlayer?> StartOutputAsync(AudioFileReader reader)
+    {
+        StopOutput();
+
+        try
+        {
+            var output = await new WasapiPlayerBuilder()
+                .WithDefaultDeviceStreamRouting()
+                .WithLatency(WasapiLatencyMs)
+                .WithMmcssThreadPriority("Audio")
+                .BuildAsync();
+
+            // A newer start replaced the reader while we awaited BuildAsync.
+            if (!ReferenceEquals(reader, _reader))
+            {
+                try { output.Dispose(); } catch { }
+                return null;
+            }
+
+            output.PlaybackStopped += OnOutputPlaybackStopped;
+            output.Init(reader);
+            _output = output;
+            return output;
+        }
+        catch
+        {
+            if (!ReferenceEquals(reader, _reader))
+                return null;
+
+            var fallback = new WaveOut
+            {
+                BufferMilliseconds = WasapiLatencyMs,
+                NumberOfBuffers = 3
+            };
+            fallback.PlaybackStopped += OnOutputPlaybackStopped;
+            fallback.Init(reader);
+            _output = fallback;
+            return fallback;
+        }
+    }
+
+    private void StopOutput()
+    {
+        var output = _output;
+        if (output == null) return;
+
+        _output = null;
+        _isTearingDownOutput = true;
+        try
+        {
+            try { output.PlaybackStopped -= OnOutputPlaybackStopped; } catch { }
+            try { output.Stop(); } catch { }
+            try { output.Dispose(); } catch { }
+        }
+        finally
+        {
+            _isTearingDownOutput = false;
+        }
+    }
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+    private static extern IntPtr GetCurrentThread();
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool SetThreadPriority(IntPtr hThread, int nPriority);
+
+    private const int THREAD_PRIORITY_TIME_CRITICAL = 15;
+
+    /// <summary>
+    /// Promotes the calling thread to THREAD_PRIORITY_TIME_CRITICAL, above
+    /// THREAD_PRIORITY_HIGHEST. .NET does not expose this level; it's what
+    /// audio engines use to guarantee the pull loop is not preempted.
+    /// </summary>
+    private static void PromoteCurrentThreadToTimeCritical()
+    {
+        try { SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL); }
+        catch { }
     }
 
     #region Owner-supplied state
@@ -107,7 +204,7 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
 
     #region Playback state
 
-    public PlaybackState PlaybackState => _waveOut.PlaybackState;
+    public PlaybackState PlaybackState => (_output?.PlaybackState ?? PlaybackState.Stopped);
     public bool IsPlaying => PlaybackState == PlaybackState.Playing;
     public bool IsPaused => PlaybackState == PlaybackState.Paused;
     public string PlayPauseLabel => IsPlaying ? "▐▐" : "▶";
@@ -124,7 +221,6 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
             if (!SetProperty(ref _currentPosition, value)) return;
             OnPropertyChanged(nameof(PositionLabel));
 
-            // Apply immediately when changed outside an active drag (e.g. click-to-seek).
             if (!_isSeeking && _reader != null)
             {
                 var clamped = value < TimeSpan.Zero ? TimeSpan.Zero
@@ -172,7 +268,8 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
         {
             if (SetProperty(ref _volume, value))
             {
-                _waveOut.Volume = (float)value;
+                ApplyVolume();
+
                 if (value > 0 && _isMuted)
                 {
                     _isMuted = false;
@@ -184,6 +281,59 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
                 AppSettings.Instance.Save();
             }
         }
+    }
+
+    private void ApplyVolume()
+    {
+        // Route through the device's volume, not the reader, so the level
+        // survives reader swaps and matches WASAPI's session volume semantics.
+        if (_output is WasapiPlayer wasapi)
+        {
+            try { wasapi.Volume = (float)_volume; } catch { }
+        }
+        else if (_output is WaveOut wave)
+        {
+            try { wave.Volume = (float)_volume; } catch { }
+        }
+        else if (_reader != null)
+        {
+            // Fallback for any other IWavePlayer (kept for safety).
+            try { _reader.Volume = (float)_volume; } catch { }
+        }
+    }
+
+    /// <summary>
+    /// Loads the entire track into RAM so playback never touches disk. Shader
+    /// compiles, big copies, and indexers can saturate the disk queue for
+    /// hundreds of milliseconds; a synchronous file read inside the WASAPI
+    /// pull thread is exactly what turns that into an audible glitch.
+    /// </summary>
+    private AudioFileReader CreateReader(string path)
+    {
+        // AudioFileReader takes ownership of the stream and disposes it.
+        // Don't keep a field reference we'd need to dispose separately.
+        var bytes = File.ReadAllBytes(path);
+        _readerStream = new MemoryStream(bytes, writable: false);
+
+        try
+        {
+            return new AudioFileReader(_readerStream);
+        }
+        catch
+        {
+            _readerStream.Dispose();
+            _readerStream = null;
+            throw;
+        }
+    }
+
+    private void DisposeReader()
+    {
+        try { _reader?.Dispose(); } catch { }
+        _reader = null;
+
+        // AudioFileReader.Dispose already disposes the stream it was given.
+        _readerStream = null;
     }
 
     private bool _isMuted;
@@ -199,7 +349,6 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
 
     public string VolumeIcon => IsMuted ? "🔇" : "🔊";
 
-    /// <summary>Mutes the player, remembering the previous volume, or restores it when unmuting.</summary>
     private void ToggleMute()
     {
         if (IsMuted)
@@ -262,7 +411,6 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
 
     public string ShuffleLabel => IsShuffleOn ? "⇄" : "⊘";
 
-    /// <summary>Cycles the repeat mode Off → All → One → Off.</summary>
     private void CycleRepeat()
     {
         RepeatMode = RepeatMode switch
@@ -278,22 +426,18 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
 
     #region Transport: play / pause / stop
 
-    /// <summary>
-    /// Toggles pause/resume if a track is loaded, otherwise starts the current track
-    /// (downloading it first if needed). Guards against double-start while preparing.
-    /// </summary>
     public void PlayPause()
     {
-        switch (_waveOut.PlaybackState)
+        switch (PlaybackState)
         {
             case PlaybackState.Playing:
-                _waveOut.Pause();
+                _output?.Pause();
                 PersistCurrentPosition();
                 NotifyPlaybackChanged();
                 return;
 
             case PlaybackState.Paused:
-                _waveOut.Play();
+                _output?.Play();
                 NotifyPlaybackChanged();
                 return;
         }
@@ -304,21 +448,18 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
         _ = StartPlayAsync(CurrentTrack);
     }
 
-    /// <summary>Runs PlayTrackAsync while the _isStarting guard is held, then releases it.</summary>
     private async Task StartPlayAsync(TrackRowViewModel track)
     {
         try { await PlayTrackAsync(track); }
         finally { _isStarting = false; }
     }
 
-    /// <summary>Stops playback, disposes the reader, and resets position, duration, and now-playing.</summary>
     public void Stop()
     {
         PersistCurrentPosition();
 
-        _waveOut.Stop();
-        _reader?.Dispose();
-        _reader = null;
+        StopOutput();
+        DisposeReader();
         CurrentPosition = TimeSpan.Zero;
         TotalDuration = TimeSpan.Zero;
         NowPlaying = string.Empty;
@@ -326,10 +467,6 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
         NotifyPlaybackChanged();
     }
 
-    /// <summary>
-    /// Plays a specific track: downloads it first if not local, then starts playback.
-    /// Aborts via Stop() if the download fails or no download callback is wired.
-    /// </summary>
     public async Task PlayTrackAsync(TrackRowViewModel track)
     {
         CurrentTrack = track;
@@ -351,14 +488,10 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
             }
         }
 
-        StartCurrentTrack();
+        await StartCurrentTrackAsync();
     }
 
-    /// <summary>
-    /// Loads the current track's local file into NAudio and starts playback.
-    /// Stops if the file cannot be found or the reader fails to initialize.
-    /// </summary>
-    private void StartCurrentTrack()
+    private async Task StartCurrentTrackAsync()
     {
         if (CurrentTrack == null) return;
 
@@ -370,15 +503,25 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
             return;
         }
 
+        await _outputGate.WaitAsync();
         try
         {
-            _waveOut.Stop();
-            _reader?.Dispose();
-            _reader = new AudioFileReader(path);
-            _waveOut.Init(_reader);
+            // A newer start queued behind us; this one is stale, bail.
+            if (_isStarting == false && !_disposed)
+            {
+                // (guard is advisory — the authoritative check is the
+                // reader identity check inside StartOutputAsync)
+            }
+
+            DisposeReader();
+            _reader = CreateReader(path);
+
+            var output = await StartOutputAsync(_reader);
+            if (output == null) return;   // superseded by a newer start
+
+            ApplyVolume();
             TotalDuration = _reader.TotalTime;
 
-            // Apply any pending restore position (clamped to file length).
             var startAt = _pendingRestorePosition;
             _pendingRestorePosition = TimeSpan.Zero;
             if (startAt > TimeSpan.Zero && startAt < _reader.TotalTime)
@@ -391,60 +534,60 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
                 CurrentPosition = TimeSpan.Zero;
             }
 
-            _waveOut.Play();
+            output.Play();
             NowPlaying = CurrentTrack.Name;
             SetPreviewThumbnail(null);
             NotifyPlaybackChanged();
         }
         catch (Exception ex)
         {
-            ErrorOccurred?.Invoke($"Playback failed: {ex.Message}");
+            ErrorOccurred?.Invoke($"Playback failed for '{CurrentTrack?.Name}': {ex.Message}");
             Stop();
+        }
+        finally
+        {
+            _outputGate.Release();
         }
     }
 
-
-    /// <summary>
-    /// The YouTube (or other source) URL for the currently playing item.
-    /// Falls back to the preview URL when previewing from search results.
-    /// </summary>
     public string? NowPlayingSourceUrl => CurrentTrack?.SourceUrl ?? _previewSourceUrl;
     public string? NowPlayingThumbnail => CurrentTrack?.ThumbnailPath ?? _previewThumbnail;
-    
+
     private string? _previewThumbnail;
     private string? _previewSourceUrl;
 
-    public void PlayLocalFile(
-        string path, 
+    public async Task PlayLocalFileAsync(
+        string path,
         string displayName,
-        string? thumbnailPath = null, 
+        string? thumbnailPath = null,
         string? sourceUrl = null)
     {
+        await _outputGate.WaitAsync();
         try
         {
             CurrentTrack = null;
 
-            _waveOut.Stop();
-            _reader?.Dispose();
-            _reader = new AudioFileReader(path);
-            _waveOut.Init(_reader);
+            DisposeReader();
+            _reader = CreateReader(path);
+
+            var output = await StartOutputAsync(_reader);
+            if (output == null) return;
+
+            ApplyVolume();
             TotalDuration = _reader.TotalTime;
             CurrentPosition = TimeSpan.Zero;
-            _waveOut.Play();
+            output.Play();
             NowPlaying = displayName;
             SetPreviewThumbnail(thumbnailPath, sourceUrl);
-            try
-            {
-                File.AppendAllText(
-                Path.Combine(AppPaths.AppDataFolder, "preview.log"),
-                $"{DateTime.Now:O} path={path} thumb={thumbnailPath ?? "<null>"} preview={_previewThumbnail ?? "<null>"} currentTrack={_currentTrack?.Name ?? "<null>"}\n");
-            }
-            catch { }
             NotifyPlaybackChanged();
         }
         catch (Exception ex)
         {
             ErrorOccurred?.Invoke($"Preview failed: {ex.Message}");
+        }
+        finally
+        {
+            _outputGate.Release();
         }
     }
 
@@ -460,7 +603,6 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
 
     #region Transport: next / previous
 
-    /// <summary>Plays the next track according to shuffle/repeat rules (manual skip ignores Repeat One).</summary>
     private async Task NextAsync()
     {
         var next = GetManualNextTrack();
@@ -468,7 +610,6 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
         await PlayTrackAsync(next);
     }
 
-    /// <summary>Plays the previous track, wrapping to the last one when Repeat All is on.</summary>
     private async Task PreviousAsync()
     {
         if (CurrentTrack == null) return;
@@ -484,7 +625,6 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
         await PlayTrackAsync(Tracks[index - 1]);
     }
 
-    /// <summary>Whether a previous track can be reached (sequentially, or by wrapping with Repeat All).</summary>
     private bool CanGoPrevious()
     {
         if (CurrentTrack == null) return false;
@@ -493,7 +633,6 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
         return index > 0 || (RepeatMode == RepeatMode.All && Tracks.Count > 0);
     }
 
-    /// <summary>Resolves the track auto-advance should play, honoring Repeat One.</summary>
     private TrackRowViewModel? GetAutoAdvanceTrack()
     {
         if (CurrentTrack == null || Tracks.Count == 0) return null;
@@ -501,17 +640,12 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
         return GetSequentialOrShuffleNext();
     }
 
-    /// <summary>Resolves the track a manual Next should play, ignoring Repeat One.</summary>
     private TrackRowViewModel? GetManualNextTrack()
     {
         if (CurrentTrack == null || Tracks.Count == 0) return null;
         return GetSequentialOrShuffleNext();
     }
 
-    /// <summary>
-    /// Picks the next track: random (excluding current) when shuffle is on,
-    /// otherwise the following track, wrapping to the first only with Repeat All.
-    /// </summary>
     private TrackRowViewModel? GetSequentialOrShuffleNext()
     {
         if (CurrentTrack == null) return null;
@@ -532,11 +666,6 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
         return Tracks[nextIndex];
     }
 
-    /// <summary>
-    /// Re-resolves CurrentTrack to the matching instance in Tracks (matched by Id).
-    /// If the track is not in the new collection, leaves CurrentTrack untouched —
-    /// playback continues against the existing instance and the playback bar keeps rendering it.
-    /// </summary>
     public void RebindCurrentTrack()
     {
         if (_currentTrack == null) return;
@@ -554,10 +683,6 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
         CommandManager.InvalidateRequerySuggested();
     }
 
-    /// <summary>
-    /// Sets the current track without playing, downloading, or touching <see cref="Tracks"/>.
-    /// Used on startup to restore the playback bar from persisted state.
-    /// </summary>
     public void RestoreTrack(TrackRowViewModel track)
     {
         _pendingRestorePosition = TimeSpan.FromSeconds(
@@ -565,8 +690,6 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
 
         CurrentTrack = track;
 
-        // Give the seek slider a range before the reader exists, otherwise
-        // Maximum (bound to TotalDuration) is 0 and the thumb pins to the end.
         TotalDuration = track.Duration;
 
         if (_pendingRestorePosition > TimeSpan.Zero && _pendingRestorePosition < track.Duration)
@@ -582,14 +705,12 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
 
     #region Seeking
 
-    /// <summary>Pauses the position timer while the user drags the seek slider.</summary>
     public void BeginSeek()
     {
         _isSeeking = true;
         _positionTimer.Stop();
     }
 
-    /// <summary>Applies the sought position to the reader, then restarts the timer.</summary>
     public void EndSeek(TimeSpan position)
     {
         if (_reader != null)
@@ -607,15 +728,11 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
 
     #region Timer
 
-    /// <summary>
-    /// Polls playback position every 500ms; on track end, advances to the next track
-    /// (honoring repeat/shuffle) or stops when the playlist is exhausted.
-    /// </summary>
     private async void OnTimerTick(object? sender, EventArgs e)
     {
         if (_isSeeking || _isAdvancing) return;
 
-        if (_reader != null && _waveOut.PlaybackState == NAudio.Wave.PlaybackState.Playing)
+        if (_reader != null && PlaybackState == PlaybackState.Playing)
             CurrentPosition = _reader.CurrentTime;
 
         if (TotalDuration > TimeSpan.Zero && CurrentPosition >= TotalDuration - TimeSpan.FromSeconds(0.5))
@@ -641,7 +758,6 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
 
     #region Notifications
 
-    /// <summary>Raises change notifications for all playback state properties and re-queries commands.</summary>
     private void NotifyPlaybackChanged()
     {
         OnPropertyChanged(nameof(PlaybackState));
@@ -649,6 +765,23 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(IsPaused));
         OnPropertyChanged(nameof(PlayPauseLabel));
         CommandManager.InvalidateRequerySuggested();
+    }
+
+    /// <summary>
+    /// WASAPI fires this on device loss (headphones unplugged), exclusive-mode
+    /// grab, or driver failure — with <see cref="StoppedEventArgs.Exception"/> set.
+    /// WaveOutEvent fires it only on explicit Stop/end-of-stream, exception null.
+    /// </summary>
+    private void OnOutputPlaybackStopped(object? sender, StoppedEventArgs e)
+    {
+        if (_disposed || _isTearingDownOutput || e.Exception == null) return;
+
+        var text = (e.Exception.HResult == unchecked((int)0x80131622))
+            ? $"Cannot play '{NowPlaying}': unsupported audio format."
+            : $"Audio device error: {e.Exception.Message}";
+
+        ErrorOccurred?.Invoke(text);
+        NotifyPlaybackChanged();
     }
 
     private void PersistCurrentPosition()
@@ -669,12 +802,9 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
         _positionTimer.Stop();
         _positionTimer.Tick -= OnTimerTick;
 
-        try { _waveOut.Stop(); } catch { }
-
-        _reader?.Dispose();
-        _reader = null;
-
-        _waveOut.Dispose();
+        StopOutput();
+        DisposeReader();
+        _outputGate.Dispose();
     }
 
     #endregion

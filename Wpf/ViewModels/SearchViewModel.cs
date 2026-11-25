@@ -188,7 +188,7 @@ public sealed class SearchViewModel : ViewModelBase
 
             Session.SetStatus($"Previewing: {row.Name}");
 
-            Session.Playback.PlayLocalFile(
+            await Session.Playback.PlayLocalFileAsync(
                 path,
                 row.Name,
                 thumbnailPath: row.ThumbnailUrl,
