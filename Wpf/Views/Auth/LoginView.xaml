@@ -4,43 +4,15 @@
     <Border Style="{StaticResource PaneBorder}">
         <Grid Style="{StaticResource PaneContent}">
 
-            <!-- Landing: big icon + choice -->
-            <StackPanel VerticalAlignment="Center"
-                        HorizontalAlignment="Center"
-                        MaxWidth="500"
-                        Visibility="{Binding ShowLanding, Converter={StaticResource BoolToVisibility}}">
-
-                <Image Source="/Assets/Brand/Logo/Ognia.png"
-                       Width="300" Height="300"
-                       HorizontalAlignment="Center"
-                       Margin="0,0,0,10"
-                       RenderOptions.BitmapScalingMode="HighQuality"/>
-
-                <Button Content="Continue as Guest"
-                        Command="{Binding GuestCommand}"
-                        Style="{StaticResource PrimaryButton}"
-                        Width="240"
-                        HorizontalAlignment="Center"/>
-
-                <Button Content="Log In"
-                        Command="{Binding ShowLoginFormCommand}"
-                        Style="{StaticResource PrimaryButton}"
-                        Width="240"
-                        HorizontalAlignment="Center"/>
-            </StackPanel>
-
-            <!-- Login / Register form -->
             <StackPanel VerticalAlignment="Center"
                         HorizontalAlignment="Center"
                         MinWidth="280"
-                        MaxWidth="400"
-                        Visibility="{Binding ShowLoginForm, Converter={StaticResource BoolToVisibility}}">
+                        MaxWidth="400">
 
                 <Button Content="↩"
-                        Command="{Binding BackToLandingCommand}"
+                        Command="{Binding LandingCommand}"
                         HorizontalAlignment="Left"
                         Style="{StaticResource IconButton}"
-                        Width="40" Height="40"
                         ToolTip="Back"/>
                 
                 <TextBlock Text="Log In" Style="{StaticResource TitleText}"/>

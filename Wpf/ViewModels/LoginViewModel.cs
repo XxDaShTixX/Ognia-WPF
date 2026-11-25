@@ -13,46 +13,22 @@ public sealed class LoginViewModel : ViewModelBase
 
     public LoginViewModel(ApiClientService api, IAppNavigator nav)
     {
+        // Initialize
         _api = api;
         _nav = nav;
 
+        // Instantiate Commands
         LoginCommand = new RelayCommand(
             async _ => await LoginAsync(),
             _ => !string.IsNullOrWhiteSpace(Email) && !string.IsNullOrWhiteSpace(Password));
-
         SignUpCommand = new RelayCommand(
             async _ => await SignUpAsync(),
             _ => !string.IsNullOrWhiteSpace(RegEmail) && !string.IsNullOrWhiteSpace(RegPassword));
-
-        GuestCommand = new RelayCommand(_ => _nav.EnterGuestMode());
         ForgotPasswordCommand = new RelayCommand(_ => _nav.ShowResetPassword());
-
-        ShowLoginFormCommand = new RelayCommand(_ => ShowLoginForm = true);
-        BackToLandingCommand = new RelayCommand(_ => ShowLoginForm = false);
+        LandingCommand = new RelayCommand(_ => _nav.ShowLanding());
     }
 
     #region Bindable Properties 
-
-    /// <summary>
-    /// Gets a value indicating whether the landing screen is visible.
-    /// The landing screen is shown when the login form is hidden.
-    /// </summary>
-    public bool ShowLanding => !_showLoginForm;
-
-    /// <summary>
-    /// Gets or sets whether the login form is visible.
-    /// When this value changes, dependent visibility properties are notified.
-    /// </summary>
-    public bool ShowLoginForm
-    {
-        get => _showLoginForm;
-        set
-        {
-            if (!SetProperty(ref _showLoginForm, value)) return;
-            OnPropertyChanged(nameof(ShowLanding));
-        }
-    }
-    private bool _showLoginForm;
 
     /// <summary>
     /// Gets or sets the email address entered by the user.
@@ -77,17 +53,32 @@ public sealed class LoginViewModel : ViewModelBase
     /// </summary>
     public string RegPassword { get => _regPassword; set => SetProperty(ref _regPassword, value); }
     private string _regPassword = string.Empty;
+
     #endregion
 
+    #region Commands
 
-
-
+    /// <summary>
+    /// Authenticates the user and signs them into the application.
+    /// </summary>
     public RelayCommand LoginCommand { get; }
+
+    /// <summary>
+    /// Creates a new account using the entered registration details.
+    /// </summary>
     public RelayCommand SignUpCommand { get; }
-    public RelayCommand GuestCommand { get; }
+
+    /// <summary>
+    /// Opens the password recovery workflow.
+    /// </summary>
     public RelayCommand ForgotPasswordCommand { get; }
-    public RelayCommand ShowLoginFormCommand { get; }
-    public RelayCommand BackToLandingCommand { get; }
+
+    /// <summary>
+    /// Returns back to the landing view.
+    /// </summary>
+    public RelayCommand LandingCommand { get; }
+
+    #endregion
 
     private async Task LoginAsync()
     {

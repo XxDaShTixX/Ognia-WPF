@@ -380,7 +380,7 @@ public sealed class SettingsViewModel : ViewModelBase
     private async Task LogoutAsync()
     {
         await _api.LogoutAsync();
-        NotificationService.Instance.Info("Logging out...");
         _nav.Logout();
+        NotificationService.Instance.Info("Logged out.");
     }
 }

@@ -9,6 +9,7 @@ public interface IAppNavigator : IShellNavigator
     void DisposeShell();
 
     void EnterGuestMode();
+    void ShowLanding();
     void ShowLogin();
     void ShowResetPassword();
     void RestoreShellContent();
