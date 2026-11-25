@@ -5,7 +5,6 @@ using Ognia.Wpf.Repos;
 using Ognia.Wpf.Services;
 using Ognia.Wpf.ViewModels;
 using System.Collections.ObjectModel;
-using System.Windows.Threading;
 
 namespace Ognia.Wpf.Session;
 
@@ -23,11 +22,11 @@ public sealed class AppSession : ViewModelBase
         };
 
         // Route all row-level operations through the session's status bar
-        PlayRequested += t => SetStatus($"Playing: {t.Name}");
-        DownloadRequested += t => SetStatus($"Downloading: {t.Name}...");
-        RemoveDownloadRequested += t => SetStatus($"Removed download for: {t.Name}");
-        RemoveRequested += t => SetStatus($"Removed track: {t.Name}");
-        RenameRequested += t => SetStatus($"Renamed track to: {t.Name}");
+        PlayRequested += t => NotificationService.Instance.Info($"Playing: {t.Name}");
+        DownloadRequested += t => NotificationService.Instance.Info($"Downloading: {t.Name}...");
+        RemoveDownloadRequested += t => NotificationService.Instance.Info($"Removed download for: {t.Name}");
+        RemoveRequested += t => NotificationService.Instance.Info($"Removed track: {t.Name}");
+        RenameRequested += t => NotificationService.Instance.Info($"Renamed track to: {t.Name}");
     }
 
     public void AttachPlayer(PlaybackViewModel playback, DownloadViewModel download)
@@ -38,14 +37,14 @@ public sealed class AppSession : ViewModelBase
         Download.Tracks = SelectedPlaylistTracks;
         Playback.TrackDownloadRequested = t =>
         {
-            SetStatus($"Preparing to play '{t.Name}'...");
+            NotificationService.Instance.Info($"Preparing to play '{t.Name}'...");
             return Download.EnsureDownloadedAsync(t);
         };
 
         // Hook up ViewModel level errors to the status bar
-        Playback.ErrorOccurred += msg => SetError(msg);
-        Download.ErrorOccurred += msg => SetError(msg);
-        Download.ProgressReported += msg => SetStatus(msg);
+        Playback.ErrorOccurred += msg => NotificationService.Instance.Info(msg);
+        Download.ErrorOccurred += msg => NotificationService.Instance.Info(msg);
+        Download.ProgressReported += msg => NotificationService.Instance.Info(msg);
     }
 
     public IMusicRepo Repo { get; }
@@ -117,24 +116,6 @@ public sealed class AppSession : ViewModelBase
         set => SetProperty(ref _isLoading, value);
     }
 
-    private string? _statusMessage;
-    public string? StatusMessage
-    {
-        get => _statusMessage;
-        set
-        {
-            if (!SetProperty(ref _statusMessage, value)) return;
-            OnPropertyChanged(nameof(HasStatus));
-        }
-    }
-
-    private bool _isStatusError;
-    public bool IsStatusError
-    {
-        get => _isStatusError;
-        set => SetProperty(ref _isStatusError, value);
-    }
-
     private bool _isBusy;
     public bool IsBusy
     {
@@ -155,53 +136,6 @@ public sealed class AppSession : ViewModelBase
         IsBusy = true;
         try { await action(); return true; }
         finally { IsBusy = false; }
-    }
-
-    public bool HasStatus => !string.IsNullOrWhiteSpace(StatusMessage);
-
-    private DispatcherTimer? _statusTimer;
-
-    /// <summary>How long non-error status messages stay visible before auto-clearing.</summary>
-    public static TimeSpan StatusAutoDismissDelay { get; set; } = TimeSpan.FromSeconds(5);
-
-    /// <summary>Sets a non-error status message that auto-clears after <see cref="StatusAutoDismissDelay"/>.</summary>
-    public void SetStatus(string message)
-    {
-        IsStatusError = false;
-        StatusMessage = message;
-        StartStatusTimer();
-    }
-
-    /// <summary>Sets an error status message that persists until replaced or cleared.</summary>
-    public void SetError(string message)
-    {
-        StopStatusTimer();
-        IsStatusError = true;
-        StatusMessage = message;
-    }
-
-    public void ClearStatus()
-    {
-        StopStatusTimer();
-        IsStatusError = false;
-        StatusMessage = null;
-    }
-
-    private void StartStatusTimer()
-    {
-        StopStatusTimer();
-        if (StatusAutoDismissDelay <= TimeSpan.Zero) return;
-
-        _statusTimer = new DispatcherTimer { Interval = StatusAutoDismissDelay };
-        _statusTimer.Tick += (_, _) => ClearStatus();
-        _statusTimer.Start();
-    }
-
-    private void StopStatusTimer()
-    {
-        if (_statusTimer == null) return;
-        _statusTimer.Stop();
-        _statusTimer = null;
     }
 
     private PlaylistResponse? _selectedPlaylist;
@@ -260,7 +194,7 @@ public sealed class AppSession : ViewModelBase
 
             if (!result.Success || result.Data == null)
             {
-                SetError(result.Error ?? "Failed to load playlists.");
+                NotificationService.Instance.Error(result.Error ?? "Failed to load playlists.");
                 return;
             }
 
@@ -372,7 +306,7 @@ public sealed class AppSession : ViewModelBase
         var result = await Repo.GetPlaylistDetailAsync(SelectedPlaylist.Id);
         if (!result.Success || result.Data == null)
         {
-            SetError(result.Error ?? "Failed to load tracks.");
+            NotificationService.Instance.Error(result.Error ?? "Failed to load tracks.");
             return;
         }
 
@@ -446,7 +380,7 @@ public sealed class AppSession : ViewModelBase
             var result = await Repo.DeletePlaylistAsync(playlist.Id);
             if (!result.Success)
             {
-                SetError(result.Error ?? "Failed to delete playlist.");
+                NotificationService.Instance.Error(result.Error ?? "Failed to delete playlist.");
                 return;
             }
 
@@ -461,7 +395,7 @@ public sealed class AppSession : ViewModelBase
 
             await LoadPlaylistsAsync();
             PersistPlaylistOrder();
-            SetStatus($"Deleted playlist '{playlist.Name}'.");
+            NotificationService.Instance.Info($"Deleted playlist '{playlist.Name}'.");
             deleted = true;
         });
 
@@ -585,9 +519,9 @@ public sealed class AppSession : ViewModelBase
             await LoadPlaylistsAsync();
 
             if (result.Errors.Count == 0)
-                SetStatus($"Removed {result.Processed} track(s) from '{playlistName}'.");
+                NotificationService.Instance.Info($"Removed {result.Processed} track(s) from '{playlistName}'.");
             else
-                SetError($"{result.Errors.Count} track(s) failed: {result.Errors[0]}");
+                NotificationService.Instance.Error($"{result.Errors.Count} track(s) failed: {result.Errors[0]}");
         });
 
         return result;
@@ -614,8 +548,8 @@ public sealed class AppSession : ViewModelBase
 
             var msg = $"Copied {result.Processed} to '{target.Name}'.";
             if (result.Skipped > 0) msg += $" {result.Skipped} already present.";
-            if (result.Errors.Count > 0) SetError(msg + $" {result.Errors.Count} failed.");
-            else SetStatus(msg);
+            if (result.Errors.Count > 0) NotificationService.Instance.Error(msg + $" {result.Errors.Count} failed.");
+            else NotificationService.Instance.Info(msg);
         });
 
         return result;
@@ -644,8 +578,8 @@ public sealed class AppSession : ViewModelBase
 
             var msg = $"Moved {result.Processed} to '{target.Name}'.";
             if (result.Skipped > 0) msg += $" {result.Skipped} already present (removed from source).";
-            if (result.Errors.Count > 0) SetError(msg + $" {result.Errors.Count} failed.");
-            else SetStatus(msg);
+            if (result.Errors.Count > 0) NotificationService.Instance.Error(msg + $" {result.Errors.Count} failed.");
+            else NotificationService.Instance.Info(msg);
         });
 
         return result;
@@ -663,13 +597,13 @@ public sealed class AppSession : ViewModelBase
         var failed = 0;
         foreach (var row in rows)
         {
-            SetStatus($"Downloading {completed + 1}/{rows.Count}: {row.Name}");
+            NotificationService.Instance.Info($"Downloading {completed + 1}/{rows.Count}: {row.Name}");
             if (await Download.EnsureDownloadedAsync(row)) completed++;
             else failed++;
         }
 
-        if (failed > 0) SetError($"{failed} of {rows.Count} download(s) failed.");
-        else SetStatus($"Downloaded {completed} track(s).");
+        if (failed > 0) NotificationService.Instance.Error($"{failed} of {rows.Count} download(s) failed.");
+        else NotificationService.Instance.Info($"Downloaded {completed} track(s).");
     }
 
     /// <summary>Deletes local files for every checked, downloaded track.</summary>
@@ -686,8 +620,8 @@ public sealed class AppSession : ViewModelBase
             LocalLibrary.DeleteLocalThumbnail(row.PlaylistName, row.Name);
         }
 
-        if (failed > 0) SetError($"{failed} file(s) could not be deleted.");
-        else SetStatus($"Removed downloads for {rows.Count} track(s).");
+        if (failed > 0) NotificationService.Instance.Error($"{failed} file(s) could not be deleted.");
+        else NotificationService.Instance.Info($"Removed downloads for {rows.Count} track(s).");
     }
 
     #endregion

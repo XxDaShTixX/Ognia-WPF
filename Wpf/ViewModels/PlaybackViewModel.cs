@@ -35,7 +35,6 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
     private bool _disposed;
     private volatile bool _isTearingDownOutput;
     private readonly SemaphoreSlim _outputGate = new(1, 1);
-    private int _outputGeneration;
 
     public PlaybackViewModel()
     {

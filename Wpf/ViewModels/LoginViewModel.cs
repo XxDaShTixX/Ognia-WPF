@@ -11,16 +11,6 @@ public sealed class LoginViewModel : ViewModelBase
     private readonly ApiClientService _api;
     private readonly IAppNavigator _nav;
 
-    private string _email = string.Empty;
-    private string _password = string.Empty;
-    private string _regEmail = string.Empty;
-    private string _regPassword = string.Empty;
-    private string _loginStatus = string.Empty;
-    private string _registerStatus = string.Empty;
-    private bool _isLoginError;
-    private bool _isRegisterError;
-    private bool _showLoginForm;
-
     public LoginViewModel(ApiClientService api, IAppNavigator nav)
     {
         _api = api;
@@ -41,17 +31,18 @@ public sealed class LoginViewModel : ViewModelBase
         BackToLandingCommand = new RelayCommand(_ => ShowLoginForm = false);
     }
 
-    public string Email { get => _email; set => SetProperty(ref _email, value); }
-    public string Password { get => _password; set => SetProperty(ref _password, value); }
-    public string RegEmail { get => _regEmail; set => SetProperty(ref _regEmail, value); }
-    public string RegPassword { get => _regPassword; set => SetProperty(ref _regPassword, value); }
+    #region Bindable Properties 
 
-    public string LoginStatus { get => _loginStatus; set => SetProperty(ref _loginStatus, value); }
-    public string RegisterStatus { get => _registerStatus; set => SetProperty(ref _registerStatus, value); }
+    /// <summary>
+    /// Gets a value indicating whether the landing screen is visible.
+    /// The landing screen is shown when the login form is hidden.
+    /// </summary>
+    public bool ShowLanding => !_showLoginForm;
 
-    public bool IsLoginError { get => _isLoginError; set => SetProperty(ref _isLoginError, value); }
-    public bool IsRegisterError { get => _isRegisterError; set => SetProperty(ref _isRegisterError, value); }
-
+    /// <summary>
+    /// Gets or sets whether the login form is visible.
+    /// When this value changes, dependent visibility properties are notified.
+    /// </summary>
     public bool ShowLoginForm
     {
         get => _showLoginForm;
@@ -61,8 +52,35 @@ public sealed class LoginViewModel : ViewModelBase
             OnPropertyChanged(nameof(ShowLanding));
         }
     }
+    private bool _showLoginForm;
 
-    public bool ShowLanding => !_showLoginForm;
+    /// <summary>
+    /// Gets or sets the email address entered by the user.
+    /// </summary>
+    public string Email { get => _email; set => SetProperty(ref _email, value); }
+    private string _email = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the password used for login.
+    /// </summary>
+    public string Password { get => _password; set => SetProperty(ref _password, value); }
+    private string _password = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the email address used for account registration.
+    /// </summary>
+    public string RegEmail { get => _regEmail; set => SetProperty(ref _regEmail, value); }
+    private string _regEmail = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the password used for account registration.
+    /// </summary>
+    public string RegPassword { get => _regPassword; set => SetProperty(ref _regPassword, value); }
+    private string _regPassword = string.Empty;
+    #endregion
+
+
+
 
     public RelayCommand LoginCommand { get; }
     public RelayCommand SignUpCommand { get; }
@@ -73,8 +91,7 @@ public sealed class LoginViewModel : ViewModelBase
 
     private async Task LoginAsync()
     {
-        IsLoginError = false;
-        LoginStatus = "Connecting...";
+        NotificationService.Instance.Info("Connecting...");
 
         var result = await _api.LoginAsync(new LoginRequest
         {
@@ -84,8 +101,7 @@ public sealed class LoginViewModel : ViewModelBase
 
         if (!result.Success || result.Data == null)
         {
-            IsLoginError = true;
-            LoginStatus = result.Error ?? "Login failed.";
+            NotificationService.Instance.Error("Login failed.");
             return;
         }
 
@@ -99,8 +115,7 @@ public sealed class LoginViewModel : ViewModelBase
 
     private async Task SignUpAsync()
     {
-        IsRegisterError = false;
-        RegisterStatus = "Connecting...";
+        NotificationService.Instance.Info("Connecting...");
 
         var result = await _api.RegisterAsync(new RegisterRequest
         {
@@ -110,11 +125,10 @@ public sealed class LoginViewModel : ViewModelBase
 
         if (!result.Success)
         {
-            IsRegisterError = true;
-            RegisterStatus = result.Error ?? "Registration failed.";
+            NotificationService.Instance.Info("Registration failed.");
             return;
         }
 
-        RegisterStatus = "Account created. You can log in now.";
+        NotificationService.Instance.Info("Account created. You can log in now.");
     }
 }

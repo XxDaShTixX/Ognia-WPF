@@ -1,5 +1,6 @@
 ﻿using Ognia.Wpf.Helpers;
 using Ognia.Wpf.Models.Playlist;
+using Ognia.Wpf.Services;
 using Ognia.Wpf.Session;
 using System.Windows;
 
@@ -212,7 +213,7 @@ public sealed class PlaylistViewModel : ViewModelBase
                 playlistId, new RenamePlaylistRequest { Name = newName });
             if (!result.Success)
             {
-                Session.SetError(result.Error ?? "Failed to rename playlist.");
+                NotificationService.Instance.Error(result.Error ?? "Failed to rename playlist.");
                 return;
             }
 
@@ -244,7 +245,7 @@ public sealed class PlaylistViewModel : ViewModelBase
                     await _playback.PlayTrackAsync(resumed);
             }
 
-            Session.SetStatus($"Renamed playlist to '{newName}'");
+            NotificationService.Instance.Info($"Renamed playlist to '{newName}'");
         });
     }
 
@@ -282,15 +283,15 @@ public sealed class PlaylistViewModel : ViewModelBase
 
         await Session.RunBusyAsync(async () =>
         {
-            Session.SetStatus("Adding track(s)… this may take a moment for large playlists.");
+            NotificationService.Instance.Info("Adding track(s)… this may take a moment for large playlists.");
             await Task.Yield();
 
-            var progress = new Progress<string>(msg => Session.SetStatus(msg));
+            var progress = new Progress<string>(msg => NotificationService.Instance.Info(msg));
             var result = await Session.Repo.AddTracksAsync(playlistId, url, progress);
 
             if (!result.Success)
             {
-                Session.SetError(result.Error ?? "Failed to add track(s).");
+                NotificationService.Instance.Error(result.Error ?? "Failed to add track(s).");
                 return;
             }
 
@@ -300,11 +301,11 @@ public sealed class PlaylistViewModel : ViewModelBase
 
             if (result.Added == 0)
             {
-                Session.SetError("Track already in this playlist.");
+                NotificationService.Instance.Error("Track already in this playlist.");
                 return;
             }
 
-            Session.SetStatus(result.Skipped > 0
+            NotificationService.Instance.Info(result.Skipped > 0
                 ? $"Added {result.Added}, {result.Skipped} skipped."
                 : $"Added {result.Added} track(s).");
         });
@@ -332,7 +333,7 @@ public sealed class PlaylistViewModel : ViewModelBase
             var result = await Session.Repo.DeletePlaylistAsync(deleted.Id);
             if (!result.Success)
             {
-                Session.SetError(result.Error ?? "Failed to delete playlist.");
+                NotificationService.Instance.Error(result.Error ?? "Failed to delete playlist.");
                 return;
             }
 
@@ -342,7 +343,7 @@ public sealed class PlaylistViewModel : ViewModelBase
             await Session.LoadPlaylistsAsync();
 
             _nav.ShowLibrary();
-            Session.SetStatus($"Deleted playlist '{deleted.Name}'");
+            NotificationService.Instance.Info($"Deleted playlist '{deleted.Name}'");
         });
     }
 

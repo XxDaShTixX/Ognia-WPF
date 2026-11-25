@@ -38,11 +38,11 @@ public partial class SettingsView : UserControl
 
         if (dialog.ShowDialog() != true) return;
 
-        _vm.Session.SetStatus("Exporting library…");
+        NotificationService.Instance.Info("Exporting library…");
         var (success, error, count) = await _vm.ExportLibraryAsync(dialog.FileName);
 
-        if (success) _vm.Session.SetStatus($"Exported {count} playlist(s).");
-        else _vm.Session.SetError(error ?? "Export failed.");
+        if (success) NotificationService.Instance.Info($"Exported {count} playlist(s).");
+        else NotificationService.Instance.Error(error ?? "Export failed.");
     }
 
     private async void ImportLibrary_Click(object sender, RoutedEventArgs e)
@@ -55,17 +55,17 @@ public partial class SettingsView : UserControl
 
         if (dialog.ShowDialog() != true) return;
 
-        _vm.Session.SetStatus("Importing library…");
+        NotificationService.Instance.Info("Importing library…");
         var (success, error, count) = await _vm.ImportLibraryAsync(dialog.FileName);
 
         if (success)
         {
-            _vm.Session.SetStatus($"Imported {count} playlist(s).");
+            NotificationService.Instance.Info($"Imported {count} playlist(s).");
             await _vm.Session.LoadPlaylistsAsync();
         }
         else
         {
-            _vm.Session.SetError(error ?? "Import failed.");
+            NotificationService.Instance.Error(error ?? "Import failed.");
         }
     }
 
@@ -74,7 +74,7 @@ public partial class SettingsView : UserControl
         var (success, error, tempPath) = await _vm.PrepareUpgradeAsync();
         if (!success)
         {
-            _vm.Session.SetError(error ?? "Upgrade failed.");
+            NotificationService.Instance.Error(error ?? "Upgrade failed.");
             return;
         }
 

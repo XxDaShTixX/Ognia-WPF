@@ -61,20 +61,6 @@
                     </Hyperlink>
                 </TextBlock>
 
-                <TextBlock Text="{Binding LoginStatus}"
-                           TextWrapping="Wrap">
-                    <TextBlock.Style>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="Foreground" Value="{DynamicResource ErrorColor}"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsLoginError}" Value="False">
-                                    <Setter Property="Foreground" Value="{DynamicResource LightTextColor}"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
-
                 <Separator/>
 
                 <TextBlock Text="Create account" Style="{StaticResource TitleText}"/>
@@ -89,20 +75,6 @@
                 <Button Content="Sign up"
                         Command="{Binding SignUpCommand}"
                         Style="{StaticResource PrimaryButton}"/>
-
-                <TextBlock Text="{Binding RegisterStatus}"
-                           TextWrapping="Wrap">
-                    <TextBlock.Style>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="Foreground" Value="{DynamicResource SuccessColor}"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsRegisterError}" Value="True">
-                                    <Setter Property="Foreground" Value="{DynamicResource ErrorColor}"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
             </StackPanel>
         </Grid>
     </Border>

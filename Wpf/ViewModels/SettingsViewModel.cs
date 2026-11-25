@@ -85,11 +85,11 @@ public sealed class SettingsViewModel : ViewModelBase
             {
                 AppSettings.Instance.ActiveTheme = value.FileName;
                 AppSettings.Instance.Save();
-                Session.SetStatus($"Applied theme '{value.Name}'.");
+                NotificationService.Instance.Info($"Applied theme '{value.Name}'.");
             }
             else
             {
-                Session.SetError("Failed to apply theme.");
+                NotificationService.Instance.Error("Failed to apply theme.");
             }
         }
     }
@@ -161,7 +161,7 @@ public sealed class SettingsViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
-            Session.SetError($"Could not open folder: {ex.Message}");
+            NotificationService.Instance.Error($"Could not open folder: {ex.Message}");
         }
     }
 
@@ -340,7 +340,7 @@ public sealed class SettingsViewModel : ViewModelBase
 
     private async Task ChangePasswordAsync()
     {
-        Session.SetStatus("Changing password…");
+        NotificationService.Instance.Info("Changing password…");
 
         var result = await _api.ChangePasswordAsync(new ChangePasswordRequest
         {
@@ -350,11 +350,11 @@ public sealed class SettingsViewModel : ViewModelBase
 
         if (!result.Success)
         {
-            Session.SetError(result.Error ?? "Change failed.");
+            NotificationService.Instance.Error(result.Error ?? "Change failed.");
             return;
         }
 
-        Session.SetStatus("Password changed.");
+        NotificationService.Instance.Info("Password changed.");
         CurrentPassword = string.Empty;
         NewPassword = string.Empty;
         ConfirmPassword = string.Empty;
@@ -380,7 +380,7 @@ public sealed class SettingsViewModel : ViewModelBase
     private async Task LogoutAsync()
     {
         await _api.LogoutAsync();
-        Session.SetStatus("Logging out...");
+        NotificationService.Instance.Info("Logging out...");
         _nav.Logout();
     }
 }
