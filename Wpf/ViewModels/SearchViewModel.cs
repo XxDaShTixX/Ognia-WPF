@@ -1,4 +1,5 @@
 ﻿using Ognia.Wpf.Local;
+using Ognia.Wpf.Services;
 using Ognia.Wpf.Session;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
@@ -174,19 +175,19 @@ public sealed class SearchViewModel : ViewModelBase
 
         try
         {
-            Session.SetStatus($"Preparing preview: {row.Name}");
+            NotificationService.Instance.Info($"Preparing preview: {row.Name}");
 
             var downloader = new PreviewDownloader();
             var progress = new Progress<double>(p =>
             {
                 // p is 0..1 from YoutubeExplode.
                 var pct = (int)Math.Round(p * 100);
-                Session.SetStatus($"[{pct}%] {row.Name}");
+                NotificationService.Instance.Info($"[{pct}%] {row.Name}");
             });
 
             var path = await downloader.DownloadAsync(row.Track, progress);
 
-            Session.SetStatus($"Previewing: {row.Name}");
+            NotificationService.Instance.Info($"Previewing: {row.Name}");
 
             await Session.Playback.PlayLocalFileAsync(
                 path,
@@ -196,7 +197,7 @@ public sealed class SearchViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
-            Session.SetError($"Preview failed: {ex.Message}");
+            NotificationService.Instance.Error($"Preview failed: {ex.Message}");
             row.IsPlaying = false;
         }
     }
@@ -208,15 +209,15 @@ public sealed class SearchViewModel : ViewModelBase
         var url = row.SourceUrl;
         if (string.IsNullOrWhiteSpace(url))
         {
-            Session.SetError("Could not build a source URL for this result.");
+            NotificationService.Instance.Error("Could not build a source URL for this result.");
             return;
         }
 
         var result = await Session.Repo.AddTracksAsync(row.SelectedPlaylist.Id, url);
         if (!result.Success)
-            Session.SetError(result.Error ?? "Failed to add track.");
+            NotificationService.Instance.Error(result.Error ?? "Failed to add track.");
         else
-            Session.SetStatus($"Added '{row.Name}' to '{row.SelectedPlaylist.Name}'.");
+            NotificationService.Instance.Info($"Added '{row.Name}' to '{row.SelectedPlaylist.Name}'.");
     }
 
     #endregion

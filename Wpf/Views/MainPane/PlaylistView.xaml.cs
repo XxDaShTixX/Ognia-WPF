@@ -2,6 +2,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using Ognia.Wpf.Services;
 using Ognia.Wpf.ViewModels;
 
 namespace Ognia.Wpf.Views.MainPane;
@@ -107,7 +108,7 @@ public partial class PlaylistView : UserControl
     {
         var result = await vm.Session.Repo.ReorderTracksAsync(playlistId, orderedIds);
         if (!result.Success)
-            vm.Session.SetError(result.Error ?? "Failed to reorder tracks.");
+            NotificationService.Instance.Error(result.Error ?? "Failed to reorder tracks.");
     }
 
     private static TrackRowViewModel? GetItemUnderMouse(DependencyObject? source)

@@ -1,4 +1,5 @@
 ﻿using Ognia.Wpf.Helpers;
+using Ognia.Wpf.Services;
 using Ognia.Wpf.Session;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -236,7 +237,7 @@ public sealed class TrackDetailsViewModel : ViewModelBase, IDisposable
 
         if (clash)
         {
-            _session.SetError($"A track named \"{newName}\" already exists in this playlist.");
+            NotificationService.Instance.Error($"A track named \"{newName}\" already exists in this playlist.");
             return;
         }
 
@@ -247,7 +248,7 @@ public sealed class TrackDetailsViewModel : ViewModelBase, IDisposable
             trackId, new Models.Track.RenameTrackRequest { Name = newName });
         if (!result.Success)
         {
-            _session.SetError(result.Error ?? "Failed to rename track.");
+            NotificationService.Instance.Error(result.Error ?? "Failed to rename track.");
             return;
         }
 
@@ -261,7 +262,7 @@ public sealed class TrackDetailsViewModel : ViewModelBase, IDisposable
         _session.SelectedTrack = _session.SelectedPlaylistTracks.FirstOrDefault(t => t.Id == trackId);
 
         CloseRename();
-        _session.SetStatus($"Renamed track to '{newName}'");
+        NotificationService.Instance.Info($"Renamed track to '{newName}'");
     }
 
     #endregion
@@ -287,7 +288,7 @@ public sealed class TrackDetailsViewModel : ViewModelBase, IDisposable
             var result = await _session.Repo.RemoveTrackAsync(SelectedPlaylist.Id, removed.Id);
             if (!result.Success)
             {
-                _session.SetError(result.Error ?? "Failed to remove track.");
+                NotificationService.Instance.Error(result.Error ?? "Failed to remove track.");
                 return;
             }
 
@@ -298,7 +299,7 @@ public sealed class TrackDetailsViewModel : ViewModelBase, IDisposable
             _session.SelectedTrack = null;
             await _session.LoadPlaylistsAsync();
 
-            _session.SetStatus($"Removed '{removed.Name}' from playlist");
+            NotificationService.Instance.Info($"Removed '{removed.Name}' from playlist");
         });
     }
 
@@ -318,11 +319,11 @@ public sealed class TrackDetailsViewModel : ViewModelBase, IDisposable
             await _session.LoadPlaylistsAsync();
 
             if (result.Errors.Count > 0)
-                _session.SetError($"Move failed: {result.Errors[0]}");
+                NotificationService.Instance.Error($"Move failed: {result.Errors[0]}");
             else if (result.Skipped > 0)
-                _session.SetStatus($"Already present in '{target.Name}'; removed from source.");
+                NotificationService.Instance.Info($"Already present in '{target.Name}'; removed from source.");
             else
-                _session.SetStatus($"Moved track to '{target.Name}'.");
+                NotificationService.Instance.Info($"Moved track to '{target.Name}'.");
         });
     }
 

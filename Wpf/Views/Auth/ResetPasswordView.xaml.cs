@@ -13,6 +13,7 @@ public partial class ResetPasswordView : UserControl
     public ResetPasswordView(ApiClientService api, IAppNavigator nav)
     {
         InitializeComponent();
+
         _vm = new ResetPasswordViewModel(api, nav);
         DataContext = _vm;
     }

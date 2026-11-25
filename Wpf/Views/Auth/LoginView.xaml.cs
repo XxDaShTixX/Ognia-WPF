@@ -12,6 +12,7 @@ public partial class LoginView : UserControl
     public LoginView(ApiClientService api, IAppNavigator nav)
     {
         InitializeComponent();
+
         _vm = new LoginViewModel(api, nav);
         DataContext = _vm;
     }

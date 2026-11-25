@@ -113,7 +113,7 @@ public partial class MainWindow : Window
 
         if (!TokenStore.IsAuthenticated)
         {
-            Navigator.ShowLogin();
+            Navigator.ShowLanding();
             return;
         }
 
@@ -121,7 +121,7 @@ public partial class MainWindow : Window
         if (ok)
             Navigator.ShowShell(new ApiMusicRepo(Api));
         else
-            Navigator.ShowLogin();
+            Navigator.ShowLanding();
     }
 
     private void OnUnauthorized()

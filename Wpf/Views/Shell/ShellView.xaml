@@ -6,7 +6,6 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="250"/>
@@ -26,8 +25,5 @@
                 ClipToBounds="True">
             <ContentControl x:Name="PlaybackContent"/>
         </Border>
-
-        <views:StatusBarView Grid.Row="2" Grid.ColumnSpan="3"
-                             DataContext="{Binding}"/>
     </Grid>
 </UserControl>

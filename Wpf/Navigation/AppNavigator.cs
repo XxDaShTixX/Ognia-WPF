@@ -22,7 +22,6 @@ public sealed class AppNavigator : IAppNavigator
     private DownloadViewModel? _download;
     private TrackDetailsViewModel? _rightVm;
     private MultiTrackSelectionViewModel? _multiVm;
-    private string? _pendingUpgradePath;
     private ShellView? _shell;
 
     public AppNavigator(ApiClientService api, Action<object> setScreen)
@@ -90,22 +89,26 @@ public sealed class AppNavigator : IAppNavigator
     #region IAppNavigator
 
     public bool HasPendingUpgrade => _pendingUpgradePath != null;
+    private string? _pendingUpgradePath;
 
     public void EnterGuestMode()
     {
+        NotificationService.Instance.Info("Logged in as Guest.");
         AppSettings.Instance.Mode = Enums.AppMode.Guest;
         AppSettings.Instance.Save();
         ShowShell(new LocalMusicRepo());
     }
 
-    public void ShowLogin() => _setScreen(new LoginView(_api, this));
+    public void ShowLanding() => SetScreen(new LandingView(_api, this));
 
-    public void ShowResetPassword() => _setScreen(new ResetPasswordView(_api, this));
+    public void ShowLogin() => SetScreen(new LoginView(_api, this));
+
+    public void ShowResetPassword() => SetScreen(new ResetPasswordView(_api, this));
 
     public void RestoreShellContent()
     {
         if (_shell == null) return;
-        _setScreen(_shell);
+        SetScreen(_shell);
     }
 
     public void Logout()
@@ -119,7 +122,7 @@ public sealed class AppNavigator : IAppNavigator
         }
 
         TokenStore.Clear();
-        ShowLogin();
+        ShowLanding();
     }
 
     public async Task<(bool Success, string? Error, string? BackupPath)> PrepareUpgradeAsync()
@@ -186,40 +189,21 @@ public sealed class AppNavigator : IAppNavigator
     {
         DisposeShell();
 
-        var session = new AppSession(repo);
-        session.Transfer = LibraryTransferFactory.Create(repo, isGuest: repo is LocalMusicRepo);
-        _session = session;
+        _session = CreateSession(repo);
+        InitializePlayback(_session);
+        InitializeRightPane(_session);
 
-        var playback = new PlaybackViewModel();
-        var download = new DownloadViewModel();
-        session.AttachPlayer(playback, download);
-        _playback = playback;
-        _download = download;
+        _shell = CreateShell(_session);
 
-        var shell = new ShellView
-        {
-            DataContext = new ShellViewModel(session, this)
-        };
-        _shell = shell;
-
-        MainContentChanged += shell.SetMainContent;
-        RightContentChanged += shell.SetRightContent;
-
-        _rightVm = new TrackDetailsViewModel(session);
-        _multiVm = new MultiTrackSelectionViewModel(session);
-        session.Details = _rightVm;
-
-        session.SelectionChanged += RefreshRightPane;
+        SubscribeEvents();
 
         ShowLibrary();
 
-        shell.SetPlaybackContent(new PlaybackBarView
-        {
-            DataContext = new PlaybackBarViewModel(session, playback, download)
-        });
+        ConfigurePlaybackBar();
 
         RefreshRightPane();
-        _setScreen(shell);
+
+        SetScreen(_shell);
     }
 
     private void RefreshRightPane()
@@ -245,11 +229,17 @@ public sealed class AppNavigator : IAppNavigator
         RightContentChanged?.Invoke(new TrackDetailsView { DataContext = _rightVm });
     }
 
+    /// <summary>
+    /// Cleans up the active shell, unsubscribes event handlers,
+    /// disposes owned view models, and clears references so the
+    /// shell can be safely recreated.
+    /// </summary>
     public void DisposeShell()
     {
+        UnsubscribeEvents();
+
         if (_session != null)
         {
-            _session.SelectionChanged -= RefreshRightPane;
             _session.Details = null;
         }
 
@@ -261,10 +251,79 @@ public sealed class AppNavigator : IAppNavigator
         _playback = null;
         _download = null;
         _session = null;
+
         _shell = null;
-        MainContentChanged = null;
-        RightContentChanged = null;
     }
 
     #endregion
+
+    private void SetScreen(object screen) => _setScreen(screen);
+
+    private AppSession CreateSession(IMusicRepo repo)
+    {
+        var session = new AppSession(repo);
+        session.Transfer = LibraryTransferFactory.Create(repo, isGuest: repo is LocalMusicRepo);
+        return session;
+    }
+
+    private void InitializeRightPane(AppSession session)
+    {
+        _rightVm = new TrackDetailsViewModel(session);
+        _multiVm = new MultiTrackSelectionViewModel(session);
+
+        session.Details = _rightVm;
+        session.SelectionChanged += RefreshRightPane;
+    }
+
+    private void InitializePlayback(AppSession session)
+    {
+        _playback = new PlaybackViewModel();
+        _download = new DownloadViewModel();
+
+        session.AttachPlayer(_playback, _download);
+    }
+
+    private ShellView CreateShell(AppSession session)
+    {
+        return new ShellView
+        {
+            DataContext = new ShellViewModel(session, this)
+        };
+    }
+
+    private void ConfigurePlaybackBar()
+    {
+        ArgumentNullException.ThrowIfNull(_shell);
+        ArgumentNullException.ThrowIfNull(_session);
+        ArgumentNullException.ThrowIfNull(_playback);
+        ArgumentNullException.ThrowIfNull(_download);
+
+        _shell.SetPlaybackContent(new PlaybackBarView
+        {
+            DataContext = new PlaybackBarViewModel(_session, _playback, _download)
+        });
+    }
+
+    private void SubscribeEvents()
+    {
+        ArgumentNullException.ThrowIfNull(_shell);
+
+        // Subscribe
+        MainContentChanged += _shell.SetMainContent;
+        RightContentChanged += _shell.SetRightContent;
+    }
+
+    private void UnsubscribeEvents()
+    {
+        if (_shell != null)
+        {
+            MainContentChanged -= _shell.SetMainContent;
+            RightContentChanged -= _shell.SetRightContent;
+        }
+
+        if (_session != null)
+        {
+            _session.SelectionChanged -= RefreshRightPane;
+        }
+    }
 }

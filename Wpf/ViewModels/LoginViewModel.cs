@@ -11,70 +11,78 @@ public sealed class LoginViewModel : ViewModelBase
     private readonly ApiClientService _api;
     private readonly IAppNavigator _nav;
 
-    private string _email = string.Empty;
-    private string _password = string.Empty;
-    private string _regEmail = string.Empty;
-    private string _regPassword = string.Empty;
-    private string _loginStatus = string.Empty;
-    private string _registerStatus = string.Empty;
-    private bool _isLoginError;
-    private bool _isRegisterError;
-    private bool _showLoginForm;
-
     public LoginViewModel(ApiClientService api, IAppNavigator nav)
     {
+        // Initialize
         _api = api;
         _nav = nav;
 
+        // Instantiate Commands
         LoginCommand = new RelayCommand(
             async _ => await LoginAsync(),
             _ => !string.IsNullOrWhiteSpace(Email) && !string.IsNullOrWhiteSpace(Password));
-
         SignUpCommand = new RelayCommand(
             async _ => await SignUpAsync(),
             _ => !string.IsNullOrWhiteSpace(RegEmail) && !string.IsNullOrWhiteSpace(RegPassword));
-
-        GuestCommand = new RelayCommand(_ => _nav.EnterGuestMode());
         ForgotPasswordCommand = new RelayCommand(_ => _nav.ShowResetPassword());
-
-        ShowLoginFormCommand = new RelayCommand(_ => ShowLoginForm = true);
-        BackToLandingCommand = new RelayCommand(_ => ShowLoginForm = false);
+        LandingCommand = new RelayCommand(_ => _nav.ShowLanding());
     }
 
+    #region Bindable Properties 
+
+    /// <summary>
+    /// Gets or sets the email address entered by the user.
+    /// </summary>
     public string Email { get => _email; set => SetProperty(ref _email, value); }
+    private string _email = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the password used for login.
+    /// </summary>
     public string Password { get => _password; set => SetProperty(ref _password, value); }
+    private string _password = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the email address used for account registration.
+    /// </summary>
     public string RegEmail { get => _regEmail; set => SetProperty(ref _regEmail, value); }
+    private string _regEmail = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the password used for account registration.
+    /// </summary>
     public string RegPassword { get => _regPassword; set => SetProperty(ref _regPassword, value); }
+    private string _regPassword = string.Empty;
 
-    public string LoginStatus { get => _loginStatus; set => SetProperty(ref _loginStatus, value); }
-    public string RegisterStatus { get => _registerStatus; set => SetProperty(ref _registerStatus, value); }
+    #endregion
 
-    public bool IsLoginError { get => _isLoginError; set => SetProperty(ref _isLoginError, value); }
-    public bool IsRegisterError { get => _isRegisterError; set => SetProperty(ref _isRegisterError, value); }
+    #region Commands
 
-    public bool ShowLoginForm
-    {
-        get => _showLoginForm;
-        set
-        {
-            if (!SetProperty(ref _showLoginForm, value)) return;
-            OnPropertyChanged(nameof(ShowLanding));
-        }
-    }
-
-    public bool ShowLanding => !_showLoginForm;
-
+    /// <summary>
+    /// Authenticates the user and signs them into the application.
+    /// </summary>
     public RelayCommand LoginCommand { get; }
+
+    /// <summary>
+    /// Creates a new account using the entered registration details.
+    /// </summary>
     public RelayCommand SignUpCommand { get; }
-    public RelayCommand GuestCommand { get; }
+
+    /// <summary>
+    /// Opens the password recovery workflow.
+    /// </summary>
     public RelayCommand ForgotPasswordCommand { get; }
-    public RelayCommand ShowLoginFormCommand { get; }
-    public RelayCommand BackToLandingCommand { get; }
+
+    /// <summary>
+    /// Returns back to the landing view.
+    /// </summary>
+    public RelayCommand LandingCommand { get; }
+
+    #endregion
 
     private async Task LoginAsync()
     {
-        IsLoginError = false;
-        LoginStatus = "Connecting...";
+        NotificationService.Instance.Info("Connecting...");
 
         var result = await _api.LoginAsync(new LoginRequest
         {
@@ -84,8 +92,7 @@ public sealed class LoginViewModel : ViewModelBase
 
         if (!result.Success || result.Data == null)
         {
-            IsLoginError = true;
-            LoginStatus = result.Error ?? "Login failed.";
+            NotificationService.Instance.Error("Login failed.");
             return;
         }
 
@@ -99,8 +106,7 @@ public sealed class LoginViewModel : ViewModelBase
 
     private async Task SignUpAsync()
     {
-        IsRegisterError = false;
-        RegisterStatus = "Connecting...";
+        NotificationService.Instance.Info("Connecting...");
 
         var result = await _api.RegisterAsync(new RegisterRequest
         {
@@ -110,11 +116,10 @@ public sealed class LoginViewModel : ViewModelBase
 
         if (!result.Success)
         {
-            IsRegisterError = true;
-            RegisterStatus = result.Error ?? "Registration failed.";
+            NotificationService.Instance.Info("Registration failed.");
             return;
         }
 
-        RegisterStatus = "Account created. You can log in now.";
+        NotificationService.Instance.Info("Account created. You can log in now.");
     }
 }

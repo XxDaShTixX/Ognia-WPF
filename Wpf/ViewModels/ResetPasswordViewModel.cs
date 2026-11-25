@@ -7,17 +7,15 @@ namespace Ognia.Wpf.ViewModels;
 public class ResetPasswordViewModel : ViewModelBase
 {
     private readonly ApiClientService _api;
-
-    private string _email = string.Empty;
-    private string _token = string.Empty;
-    private string _newPassword = string.Empty;
-    private string _statusMessage = string.Empty;
-    private bool _isError;
+    private readonly IAppNavigator _nav;
 
     public ResetPasswordViewModel(ApiClientService api, IAppNavigator nav)
     {
+        // Initialize
         _api = api;
+        _nav = nav;
 
+        // Instantiate Commands
         RequestTokenCommand = new RelayCommand(
             async _ => await RequestTokenAsync(),
             _ => !string.IsNullOrWhiteSpace(Email));
@@ -31,37 +29,54 @@ public class ResetPasswordViewModel : ViewModelBase
         BackCommand = new RelayCommand(_ => nav.ShowLogin());
     }
 
+    #region Bindable Properties 
+
     public string Email { get => _email; set => SetProperty(ref _email, value); }
+    private string _email = string.Empty;
+
     public string Token { get => _token; set => SetProperty(ref _token, value); }
+    private string _token = string.Empty;
+
     public string NewPassword { get => _newPassword; set => SetProperty(ref _newPassword, value); }
+    private string _newPassword = string.Empty;
 
-    public string StatusMessage { get => _statusMessage; set => SetProperty(ref _statusMessage, value); }
-    public bool IsError { get => _isError; set => SetProperty(ref _isError, value); }
+    #endregion
 
+    #region Commands
+
+    /// <summary>
+    /// Requests a password reset token for the entered email address.
+    /// </summary>
     public RelayCommand RequestTokenCommand { get; }
+
+    /// <summary>
+    /// Resets the user's password using the provided token.
+    /// </summary>
     public RelayCommand ResetPasswordCommand { get; }
+
+    /// <summary>
+    /// Returns to the login screen.
+    /// </summary>
     public RelayCommand BackCommand { get; }
+
+    #endregion
 
     private async Task RequestTokenAsync()
     {
-        IsError = false;
-        StatusMessage = "Requesting…";
+        NotificationService.Instance.Info("Requesting access token...");
 
         var result = await _api.ForgotPasswordAsync(new ForgotPasswordRequest { Email = Email.Trim() });
         if (!result.Success)
         {
-            IsError = true;
-            StatusMessage = result.Error ?? "Request failed.";
+            NotificationService.Instance.Error(result.Error ?? "Request failed.");
             return;
         }
-
-        StatusMessage = "If that email exists, a reset token was printed to the server console. Paste it below.";
+        NotificationService.Instance.Info("If that email exists, a password reset token has been sent.");
     }
 
     private async Task ResetPasswordAsync()
     {
-        IsError = false;
-        StatusMessage = "Resetting…";
+        NotificationService.Instance.Info("Resetting password...");
 
         var result = await _api.ResetPasswordAsync(new ResetPasswordRequest
         {
@@ -72,12 +87,12 @@ public class ResetPasswordViewModel : ViewModelBase
 
         if (!result.Success)
         {
-            IsError = true;
-            StatusMessage = result.Error ?? "Reset failed.";
+            NotificationService.Instance.Error(result.Error ?? "Reset failed.");
             return;
         }
 
-        StatusMessage = "Password reset. You can log in now.";
+        NotificationService.Instance.Info("Password reset. You can log in now.");
+        _nav.ShowLogin();
         Token = string.Empty;
         NewPassword = string.Empty;
     }

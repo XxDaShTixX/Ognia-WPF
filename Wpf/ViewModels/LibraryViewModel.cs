@@ -1,6 +1,7 @@
 ﻿using Ognia.Wpf.Helpers;
 using Ognia.Wpf.Models.Playlist;
 using Ognia.Wpf.Navigation;
+using Ognia.Wpf.Services;
 using Ognia.Wpf.Session;
 
 namespace Ognia.Wpf.ViewModels;
@@ -59,13 +60,13 @@ public sealed class LibraryViewModel : ViewModelBase
 
         if (!result.Success)
         {
-            Session.SetError(result.Error ?? "Failed to create playlist.");
+            NotificationService.Instance.Error(result.Error ?? "Failed to create playlist.");
             return;
         }
 
         Session.EndCreatePlaylist();
         await Session.LoadPlaylistsAsync();
-        Session.SetStatus($"Created playlist: {name}");
+        NotificationService.Instance.Info($"Created playlist: {name}");
     }
 
     /// <summary>
