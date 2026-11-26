@@ -7,13 +7,16 @@ namespace Ognia.Wpf.ViewModels.MainPane;
 
 public sealed class LibraryViewModel : ViewModelBase
 {
+    public AppSession Session { get; }
     private readonly IShellNavigator _nav;
 
     public LibraryViewModel(AppSession session, IShellNavigator nav)
     {
+        // Reference
         Session = session;
         _nav = nav;
 
+        // Initialize commands
         OpenPlaylistCommand = new RelayCommand(
             p => _nav.ShowPlaylist((PlaylistResponse)p!),
             p => p is PlaylistResponse);
@@ -33,10 +36,11 @@ public sealed class LibraryViewModel : ViewModelBase
             async p => await DeletePlaylistAsync(p as PlaylistResponse),
             p => p is PlaylistResponse);
 
+        // Load playlists
         _ = Session.LoadPlaylistsAsync();
     }
 
-    public AppSession Session { get; }
+    #region Commands
 
     public RelayCommand OpenPlaylistCommand { get; }
     public RelayCommand BeginCreatePlaylistCommand { get; }
@@ -44,7 +48,10 @@ public sealed class LibraryViewModel : ViewModelBase
     public RelayCommand CancelCreatePlaylistCommand { get; }
     public RelayCommand DeletePlaylistCommand { get; }
 
+    #endregion
+
     #region Create playlist
+
     private async Task ConfirmCreatePlaylistAsync()
     {
         var name = Session.NewPlaylistName.Trim();
@@ -82,6 +89,7 @@ public sealed class LibraryViewModel : ViewModelBase
         full.Move(fromIndex, toIndex);
         Session.PersistPlaylistOrder();
     }
+
     #endregion
 
     #region Delete playlist

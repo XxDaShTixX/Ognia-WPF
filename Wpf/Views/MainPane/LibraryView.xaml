@@ -6,11 +6,15 @@
 
             <!-- Header: title + create button -->
             <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                
+                <!-- Title -->
                 <TextBlock Text="Library"
                            Style="{StaticResource TitleText}"
                            HorizontalAlignment="Left"
                            VerticalAlignment="Center"
                            DockPanel.Dock="Left"/>
+                
+                <!-- Add Button -->
                 <Button Content="+"
                         Command="{Binding BeginCreatePlaylistCommand}"
                         HorizontalAlignment="Left"
@@ -22,7 +26,6 @@
                         ToolTip="Create playlist">
                     <Button.Style>
                         <Style TargetType="Button" BasedOn="{StaticResource IconButton}">
-                            <Setter Property="Visibility" Value="Visible"/>
                             <Setter Property="Template">
                                 <Setter.Value>
                                     <ControlTemplate TargetType="Button">
@@ -52,9 +55,11 @@
                 </Button>
             </DockPanel>
 
+            <!-- Loading -->
             <TextBlock DockPanel.Dock="Top" Text="Loading..."
                        Visibility="{Binding Session.IsLoading, Converter={StaticResource BoolToVisibility}}"/>
 
+            <!-- New Playlist -->
             <Border DockPanel.Dock="Top"
                     Margin="0,0,0,10"
                     Padding="10"
@@ -78,6 +83,7 @@
                 </StackPanel>
             </Border>
 
+            <!-- Playlists -->
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <ItemsControl x:Name="PlaylistsControl"
                               ItemsSource="{Binding Session.Playlists}"
