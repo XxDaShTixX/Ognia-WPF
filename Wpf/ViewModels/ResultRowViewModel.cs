@@ -1,5 +1,4 @@
-﻿using Ognia.Wpf.Models.Playlist;
-using Ognia.Wpf.Models.Track;
+﻿using Ognia.Wpf.Models.Track;
 using Ognia.Wpf.Session;
 using Ognia.Wpf.TrackSources;
 using System.Collections.ObjectModel;
@@ -28,37 +27,31 @@ public sealed class ResultRowViewModel : ViewModelBase
         ? $"{(int)Duration.TotalHours}:{Duration.Minutes:00}:{Duration.Seconds:00}"
         : Duration.ToString(@"mm\:ss");
 
-    public ObservableCollection<PlaylistResponse> Playlists { get; }
+    public ObservableCollection<PlaylistMembershipViewModel> ExistingPlaylists { get; } = new();
+    public ObservableCollection<PlaylistMembershipViewModel> OtherPlaylists { get; } = new();
+    public ObservableCollection<PlaylistMembershipViewModel> Playlists { get; } = new();
 
-    private readonly Dictionary<int, bool> _containsCache = new();
-    private PlaylistResponse? _selectedPlaylist;
+    private Task? _loadMembershipTask;
 
     public ResultRowViewModel(TrackResponse track, AppSession session)
     {
         Track = track;
         _session = session;
 
-        Playlists = session.Playlists;
-        _selectedPlaylist = Playlists.FirstOrDefault();
-
-        if (_selectedPlaylist != null)
-            _ = RefreshAddButtonStateAsync(_selectedPlaylist);
-
-        // Playlists load async on shell entry; re-target when they arrive.
-        Playlists.CollectionChanged += OnPlaylistsChanged;
-    }
-   
-    public PlaylistResponse? SelectedPlaylist
-    {
-        get => _selectedPlaylist;
-        set
+        OpenPlaylistPickerCommand = new RelayCommand(async _ => await OpenPlaylistPickerAsync());
+        TogglePlaylistCommand = new RelayCommand(async p =>
         {
-            if (!SetProperty(ref _selectedPlaylist, value)) return;
+            if (p is PlaylistMembershipViewModel playlist)
+                await TogglePlaylistAsync(playlist);
+        });
 
-            IsAddButtonEnabled = false;
-            if (value != null) _ = RefreshAddButtonStateAsync(value);
-        }
+        session.Playlists.CollectionChanged += OnPlaylistsChanged;
+        if (session.Playlists.Count > 0)
+            _loadMembershipTask = LoadMembershipAsync();
     }
+
+    public RelayCommand OpenPlaylistPickerCommand { get; }
+    public RelayCommand TogglePlaylistCommand { get; }
 
     #region Bindable Properties
 
@@ -69,12 +62,22 @@ public sealed class ResultRowViewModel : ViewModelBase
     }
     private bool _isPlaying;
 
-    public bool IsAddButtonEnabled
+    public bool IsPlaylistPickerOpen
     {
-        get => _isAddButtonEnabled;
-        private set => SetProperty(ref _isAddButtonEnabled, value);
+        get => _isPlaylistPickerOpen;
+        set => SetProperty(ref _isPlaylistPickerOpen, value);
     }
-    private bool _isAddButtonEnabled;
+    private bool _isPlaylistPickerOpen;
+
+    public bool IsLoadingPlaylists
+    {
+        get => _isLoadingPlaylists;
+        private set => SetProperty(ref _isLoadingPlaylists, value);
+    }
+    private bool _isLoadingPlaylists;
+
+    public bool HasTrackInAnyPlaylist => ExistingPlaylists.Count > 0;
+    public string PlaylistButtonGlyph => HasTrackInAnyPlaylist ? "✓" : "+";
 
     #endregion
 
@@ -84,45 +87,160 @@ public sealed class ResultRowViewModel : ViewModelBase
     /// </summary>
     private void OnPlaylistsChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        if (_selectedPlaylist != null) return;
-        if (Playlists.Count == 0) return;
-
-        SelectedPlaylist = Playlists[0];
+        if (_loadMembershipTask != null || _session.Playlists.Count == 0) return;
+        _loadMembershipTask = LoadMembershipAsync();
     }
 
-    private async Task RefreshAddButtonStateAsync(PlaylistResponse playlist)
+    private async Task OpenPlaylistPickerAsync()
     {
-        var enabled = await ResolveAddButtonStateAsync(playlist.Id);
-
-        if (!ReferenceEquals(_selectedPlaylist, playlist)) return;
-        IsAddButtonEnabled = enabled;
+        await EnsureMembershipLoadedAsync();
+        IsPlaylistPickerOpen = true;
     }
 
-    private async Task<bool> ResolveAddButtonStateAsync(int playlistId)
+    private async Task EnsureMembershipLoadedAsync()
     {
-        if (_containsCache.TryGetValue(playlistId, out var cached))
-            return !cached;
-
-        var result = await _session.Repo.GetPlaylistDetailAsync(playlistId);
-        if (!result.Success || result.Data == null)
-            return false;
-
-        var present = result.Data.Tracks.Any(t =>
-            string.Equals(t.SourceName, Track.SourceName, StringComparison.OrdinalIgnoreCase)
-            && string.Equals(t.SourceId, Track.SourceId, StringComparison.OrdinalIgnoreCase));
-
-        _containsCache[playlistId] = present;
-        return !present;
+        _loadMembershipTask ??= LoadMembershipAsync();
+        await _loadMembershipTask;
     }
 
-    /// <summary>
-    /// Called by the owning view model after a successful add, so the button
-    /// immediately disables for the playlist it was just added to.
-    /// </summary>
-    public void MarkAddedTo(int playlistId)
+    private async Task LoadMembershipAsync()
     {
-        _containsCache[playlistId] = true;
-        if (_selectedPlaylist?.Id == playlistId)
-            IsAddButtonEnabled = false;
+        IsLoadingPlaylists = true;
+        try
+        {
+            var memberships = await Task.WhenAll(_session.Playlists.Select(async playlist =>
+            {
+                var result = await _session.Repo.GetPlaylistDetailAsync(playlist.Id);
+                var track = result.Success
+                    ? result.Data?.Tracks.FirstOrDefault(t => IsSameTrack(t))
+                    : null;
+                return new PlaylistMembershipViewModel(playlist, track?.Id);
+            }));
+
+            ExistingPlaylists.Clear();
+            OtherPlaylists.Clear();
+            Playlists.Clear();
+            foreach (var membership in memberships.OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase))
+            {
+                Playlists.Add(membership);
+                AddSorted(membership.IsInPlaylist ? ExistingPlaylists : OtherPlaylists, membership);
+            }
+
+            OnPropertyChanged(nameof(HasTrackInAnyPlaylist));
+            OnPropertyChanged(nameof(PlaylistButtonGlyph));
+        }
+        finally
+        {
+            IsLoadingPlaylists = false;
+        }
     }
+
+    private async Task TogglePlaylistAsync(PlaylistMembershipViewModel membership)
+    {
+        if (membership.IsBusy)
+        {
+            membership.NotifyStateChanged();
+            return;
+        }
+        membership.IsBusy = true;
+        try
+        {
+            if (membership.IsInPlaylist)
+            {
+                if (!membership.TrackId.HasValue) return;
+                var result = await _session.Repo.RemoveTrackAsync(membership.Playlist.Id, membership.TrackId.Value);
+                if (!result.Success)
+                {
+                    Services.NotificationService.Instance.Error(result.Error ?? "Failed to remove track.");
+                    membership.NotifyStateChanged();
+                    return;
+                }
+                ExistingPlaylists.Remove(membership);
+                membership.SetAbsent();
+                AddSorted(OtherPlaylists, membership);
+                Services.NotificationService.Instance.Info(
+                    $"Removed '{Name}' from '{membership.Name}'.");
+            }
+            else
+            {
+                var result = await _session.Repo.AddTracksAsync(membership.Playlist.Id, SourceUrl);
+                if (!result.Success)
+                {
+                    Services.NotificationService.Instance.Error(result.Error ?? "Failed to add track.");
+                    membership.NotifyStateChanged();
+                    return;
+                }
+                var detail = await _session.Repo.GetPlaylistDetailAsync(membership.Playlist.Id);
+                OtherPlaylists.Remove(membership);
+                membership.SetPresent(detail.Data?.Tracks.FirstOrDefault(IsSameTrack)?.Id);
+                AddSorted(ExistingPlaylists, membership);
+                Services.NotificationService.Instance.Info(
+                    $"Added '{Name}' to '{membership.Name}'.");
+            }
+
+            OnPropertyChanged(nameof(HasTrackInAnyPlaylist));
+            OnPropertyChanged(nameof(PlaylistButtonGlyph));
+        }
+        finally
+        {
+            membership.IsBusy = false;
+        }
+    }
+
+    private static void AddSorted(
+        ObservableCollection<PlaylistMembershipViewModel> playlists,
+        PlaylistMembershipViewModel membership)
+    {
+        var index = 0;
+        while (index < playlists.Count
+               && StringComparer.OrdinalIgnoreCase.Compare(playlists[index].Name, membership.Name) <= 0)
+        {
+            index++;
+        }
+
+        playlists.Insert(index, membership);
+    }
+
+    private bool IsSameTrack(TrackResponse track) =>
+        string.Equals(track.SourceName, Track.SourceName, StringComparison.OrdinalIgnoreCase)
+        && string.Equals(track.SourceId, Track.SourceId, StringComparison.OrdinalIgnoreCase);
+}
+
+public sealed class PlaylistMembershipViewModel : ViewModelBase
+{
+    public PlaylistMembershipViewModel(Ognia.Wpf.Models.Playlist.PlaylistResponse playlist, int? trackId)
+    {
+        Playlist = playlist;
+        TrackId = trackId;
+        _isInPlaylist = trackId.HasValue;
+    }
+
+    public Ognia.Wpf.Models.Playlist.PlaylistResponse Playlist { get; }
+    public int? TrackId { get; private set; }
+    public string Name => Playlist.Name;
+    public bool IsInPlaylist => _isInPlaylist;
+    private bool _isInPlaylist;
+
+    public bool IsBusy
+    {
+        get => _isBusy;
+        set => SetProperty(ref _isBusy, value);
+    }
+    private bool _isBusy;
+
+    public void SetPresent(int? trackId)
+    {
+        TrackId = trackId;
+        _isInPlaylist = true;
+        OnPropertyChanged(nameof(IsInPlaylist));
+    }
+
+    public void SetAbsent()
+    {
+        TrackId = null;
+        _isInPlaylist = false;
+        OnPropertyChanged(nameof(IsInPlaylist));
+    }
+
+    public void NotifyStateChanged() => OnPropertyChanged(nameof(IsInPlaylist));
 }

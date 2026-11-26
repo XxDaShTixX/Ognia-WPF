@@ -257,6 +257,7 @@ public partial class MainWindow : Window
 
         PlaybackSessionState.Instance.LastTrackPosition =
             playback.CurrentPosition.TotalSeconds;
+        PlaybackSessionState.Instance.Save();
     }
     #endregion
 

@@ -36,10 +36,6 @@ public sealed class SearchViewModel : ViewModelBase
             async p => await PreviewAsync((ResultRowViewModel)p!),
             p => p is ResultRowViewModel);
 
-        AddToPlaylistCommand = new RelayCommand(
-            async p => await AddToPlaylistAsync((ResultRowViewModel)p!),
-            p => p is ResultRowViewModel r && r.SelectedPlaylist != null);
-
         PageSizeOptions = new[] { 10, 20, 30, 50 };
     }
 
@@ -107,7 +103,6 @@ public sealed class SearchViewModel : ViewModelBase
     public RelayCommand NextPageCommand { get; }
     public RelayCommand PrevPageCommand { get; }
     public RelayCommand PreviewCommand { get; }
-    public RelayCommand AddToPlaylistCommand { get; }
 
     #endregion
 
@@ -195,38 +190,6 @@ public sealed class SearchViewModel : ViewModelBase
             NotificationService.Instance.Error($"Preview failed: {ex.Message}");
             row.IsPlaying = false;
         }
-    }
-
-    private async Task AddToPlaylistAsync(ResultRowViewModel row)
-    {
-        if (row?.SelectedPlaylist == null) return;
-
-        var url = row.SourceUrl;
-        if (string.IsNullOrWhiteSpace(url))
-        {
-            NotificationService.Instance.Error("Could not build a source URL for this result.");
-            return;
-        }
-
-        var targetId = row.SelectedPlaylist.Id;
-        var result = await Session.Repo.AddTracksAsync(targetId, url);
-
-        if (!result.Success)
-        {
-            NotificationService.Instance.Error(result.Error ?? "Failed to add track.");
-            return;
-        }
-
-        // Server/local repo reports Added==0 when the track was already present.
-        if (result.Added == 0)
-        {
-            NotificationService.Instance.Info($"'{row.Name}' is already in '{row.SelectedPlaylist.Name}'.");
-            row.MarkAddedTo(targetId);
-            return;
-        }
-
-        NotificationService.Instance.Info($"Added '{row.Name}' to '{row.SelectedPlaylist.Name}'.");
-        row.MarkAddedTo(targetId);
     }
 
     #endregion

@@ -10,6 +10,7 @@ using Ognia.Wpf.ViewModels.Shell;
 using Ognia.Wpf.Views.Auth;
 using Ognia.Wpf.Views.RightPane;
 using Ognia.Wpf.Views.Shell;
+using System.ComponentModel;
 using System.Windows;
 
 namespace Ognia.Wpf.Navigation;
@@ -143,9 +144,7 @@ public sealed class AppNavigator : IAppNavigator
 
     public void ShowLibrary()
     {
-        // Leave SelectedPlaylist alone; the Library view doesn't care, and it
-        // preserves the id used to restore the playback bar on next launch.
-        _context!.Session.SelectedTrack = null;
+        ClearRightPane();
 
         MainContentChanged?.Invoke(
             _viewFactory.CreateLibraryView(_context!.Session, this));
@@ -164,6 +163,8 @@ public sealed class AppNavigator : IAppNavigator
 
     public void ShowSettings()
     {
+        ClearRightPane();
+
         MainContentChanged?.Invoke(
             _viewFactory.CreateSettingsView(
                 _api,
@@ -173,7 +174,7 @@ public sealed class AppNavigator : IAppNavigator
 
     public void ShowSearch()
     {
-        _context!.Session.SelectedTrack = null;
+        ClearRightPane();
 
         MainContentChanged?.Invoke(
             _viewFactory.CreateSearchView(_context!.Session));
@@ -288,6 +289,13 @@ public sealed class AppNavigator : IAppNavigator
     private void InitializeRightPane(AppSession session)
     {
         session.SelectionChanged += RefreshRightPane;
+        session.PropertyChanged += OnSessionPropertyChanged;
+    }
+
+    private void OnSessionPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(AppSession.SelectedTrack))
+            RefreshRightPane();
     }
 
     private ShellView CreateShell(AppSession session)
@@ -329,6 +337,7 @@ public sealed class AppNavigator : IAppNavigator
         if (_context != null)
         {
             _context.Session.SelectionChanged -= RefreshRightPane;
+            _context.Session.PropertyChanged -= OnSessionPropertyChanged;
         }
     }
 }
