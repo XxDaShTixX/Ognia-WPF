@@ -8,7 +8,7 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="250"/>
+            <ColumnDefinition Width="70"/>
             <ColumnDefinition Width="*"/>
             <ColumnDefinition x:Name="RightColumn" Width="0"/>
         </Grid.ColumnDefinitions>

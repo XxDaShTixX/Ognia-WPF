@@ -5,50 +5,37 @@
 
     <Border Style="{StaticResource PaneBorder}"
             CornerRadius="10" Margin="10" ClipToBounds="True">
-        
+
         <DockPanel Style="{StaticResource SidebarDockPanel}">
-
-            <DockPanel DockPanel.Dock="Top" HorizontalAlignment="Center">
-                <TextBlock Text="{Binding WelcomeText}"
-                           TextWrapping="Wrap"
-                           Style="{StaticResource TitleText}"/>
-            </DockPanel>
-
-            <Separator DockPanel.Dock="Top" Width="200"/>
 
             <StackPanel DockPanel.Dock="Top">
                 <Button Command="{Binding LibraryCommand}"
-                        ToolTip="Library / Playlists"
-                        Style="{StaticResource NavigationButton}">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="📚" Margin="0,0,10,0"/>
-                        <TextBlock Text="Library"/>
-                    </StackPanel>
+                        Tag="{Binding IsLibrarySelected}"
+                        Style="{StaticResource NavigationButton}"
+                        ToolTip="Library">
+                    <TextBlock Text="📚" FontSize="25"/>
                 </Button>
 
                 <Button Command="{Binding SearchCommand}"
-                        ToolTip="Search"
-                        Style="{StaticResource NavigationButton}">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="🔎" Margin="0,0,10,0"/>
-                        <TextBlock Text="Search"/>
-                    </StackPanel>
+                        Tag="{Binding IsSearchSelected}"
+                        Style="{StaticResource NavigationButton}"
+                        ToolTip="Search">
+                    <TextBlock Text="🔎" FontSize="25"/>
                 </Button>
 
                 <Button Command="{Binding SettingsCommand}"
-                        ToolTip="Settings Menu"
-                        Style="{StaticResource NavigationButton}">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="⚙️" Margin="0,0,10,0"/>
-                        <TextBlock Text="Settings"/>
-                    </StackPanel>
+                        Tag="{Binding IsSettingsSelected}"
+                        Style="{StaticResource NavigationButton}"
+                        ToolTip="Settings">
+                    <TextBlock Text="⚙️" FontSize="25"/>
                 </Button>
+
             </StackPanel>
 
             <TextBlock Text="Loading..."
+                       HorizontalAlignment="Center"
                        VerticalAlignment="Center"
                        Visibility="{Binding Session.IsLoading, Converter={StaticResource BoolToVisibility}}"/>
-
         </DockPanel>
         
     </Border>
