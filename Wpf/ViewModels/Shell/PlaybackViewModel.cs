@@ -1,5 +1,4 @@
-﻿using NAudio.CoreAudioApi;
-using NAudio.Wave;
+﻿using NAudio.Wave;
 using Ognia.Wpf.Configuration;
 using Ognia.Wpf.Enums;
 using Ognia.Wpf.Session;
@@ -173,6 +172,7 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
             if (_pendingRestorePosition == TimeSpan.Zero)
                 PlaybackSessionState.Instance.LastTrackPosition = 0;
             AppSettings.Instance.Save();
+            PlaybackSessionState.Instance.Save();
 
             OnPropertyChanged(nameof(CurrentTrack));
             OnPropertyChanged(nameof(NowPlayingThumbnail));
@@ -790,6 +790,7 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
 
         PlaybackSessionState.Instance.LastTrackPosition = CurrentPosition.TotalSeconds;
         AppSettings.Instance.Save();
+        PlaybackSessionState.Instance.Save();
     }
 
     public void Dispose()

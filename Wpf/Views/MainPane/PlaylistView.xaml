@@ -32,12 +32,14 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
+                        <!-- Playlist Title -->
                         <TextBlock Grid.Row="0"
                                    Text="{Binding Session.SelectedPlaylist.Name}"
                                    Style="{StaticResource TitleText}"
                                    HorizontalAlignment="Left"
                                    Margin="0,0,0,4"/>
 
+                        <!-- Playlist Track Count -->
                         <TextBlock Grid.Row="1"
                                    Text="{Binding Session.SelectedPlaylist.PlaylistTracksCount, StringFormat='{}{0} tracks'}"
                                    Style="{StaticResource PrimaryTextBlock}"
@@ -67,104 +69,153 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
 
+                            <!-- Left Buttons -->
                             <StackPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Left">
+
+                                <!-- Play -->
                                 <Button Content="▶"
                                         Command="{Binding PlayPlaylistCommand}"
                                         Style="{StaticResource PrimaryButton}"
                                         Width="40" Height="40"/>
 
+                                <!-- Open Playlist Folder -->
                                 <Button Content="📁"
                                         Command="{Binding OpenFolderCommand}"
                                         Style="{StaticResource IconButton}"
-                                        Width="40" Height="40"
                                         ToolTip="Open playlist folder"/>
 
+                                <!-- Download All Tracks -->
                                 <Button Content="🡻"
                                         Command="{Binding Session.Download.DownloadAllCommand}"
                                         Style="{StaticResource IconButton}"
-                                        Width="40" Height="40"
                                         ToolTip="Download all tracks in this playlist"/>
 
+                                <!-- Remove All Downloaded Tracks -->
                                 <Button Content="━"
                                         Command="{Binding Session.Download.RemoveAllDownloadsCommand}"
                                         Style="{StaticResource IconButton}"
-                                        Width="40" Height="40"
                                         ToolTip="Remove all downloads in this playlist"/>
 
+                                <!-- Shuffle Toggle -->
                                 <Button Content="{Binding ShuffleLabel}"
                                         Command="{Binding ToggleShuffleCommand}"
                                         Style="{StaticResource IconButton}"
-                                        Width="40" Height="40"
                                         ToolTip="Toggle shuffle"/>
 
+                                <!-- Search / Filter -->
                                 <Button Content="🔎"
                                         Command="{Binding ToggleFilterCommand}"
-                                        Style="{StaticResource IconButton}"
-                                        Width="40" Height="40"
-                                        ToolTip="Filter tracks in this playlist"/>
+                                        ToolTip="Filter tracks in this playlist">
+                                    <Button.Style>
+                                        <Style TargetType="Button"
+                                               BasedOn="{StaticResource IconButton}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Session.PlaylistFilterOpen}"
+                                                             Value="True">
+                                                    <Setter Property="Background"
+                                                            Value="{DynamicResource ButtonPressedColor}"/>
+                                                    <Setter Property="Foreground"
+                                                            Value="{DynamicResource LightTextColor}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                                
                             </StackPanel>
-                            
+
+                            <!-- Right Buttons -->
                             <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
+
+                                <!-- Rename Playlist -->
                                 <Button Content="✎"
                                         Command="{Binding RenamePlaylistCommand}"
                                         Style="{StaticResource IconButton}"
-                                        Width="40" Height="40"
                                         ToolTip="Rename playlist"/>
+
+                                <!-- Add Track to Playlist -->
                                 <Button Content="➕"
                                         Command="{Binding AddTrackCommand}"
                                         Style="{StaticResource IconButton}"
-                                        Width="40" Height="40"
                                         ToolTip="Add track to playlist"/>
+
+                                <!-- Delete Playlist -->
                                 <Button Content="🗙"
                                         Command="{Binding DeletePlaylistCommand}"
                                         Style="{StaticResource IconButton}"
-                                        Width="40" Height="40"
                                         ToolTip="Delete playlist"/>
+
                             </StackPanel>
+                            
                         </Grid>
 
                         <!-- Rename Prompt -->
-                        <StackPanel Grid.Row="3" Margin="0,4,0,0"
+                        <StackPanel Grid.Row="3"
                                     Visibility="{Binding IsRenameOpen, Converter={StaticResource BoolToVisibility}}">
+
+                            <!-- Rename Textbox -->
                             <TextBlock Text="New name" Style="{StaticResource PrimaryTextBlock}"/>
+                            
                             <StackPanel Orientation="Horizontal">
+
+                                <!-- Rename Textbox -->
                                 <TextBox Text="{Binding RenameInput, UpdateSourceTrigger=PropertyChanged}"
                                          Width="300"/>
+
+                                <!-- Confirm -->
                                 <Button Content="✓" 
                                         Command="{Binding ConfirmRenameCommand}"
-                                        Height="40" Width="40"/>
+                                        Style="{StaticResource IconButton}"/>
+
+                                <!-- Cancel -->
                                 <Button Content="✕" 
                                         Command="{Binding CancelRenameCommand}"
-                                        Height="40" Width="40"/>
+                                        Style="{StaticResource IconButton}"/>
                             </StackPanel>
+                            
                         </StackPanel>
 
                         <!-- Add Track Prompt -->
                         <StackPanel Grid.Row="4" Margin="0,4,0,0"
                                     Visibility="{Binding IsAddTrackOpen, Converter={StaticResource BoolToVisibility}}">
+                            
                             <TextBlock Text="Track or playlist URL" Style="{StaticResource PrimaryTextBlock}"/>
+                            
                             <StackPanel Orientation="Horizontal">
+
+                                <!-- Track URL to Add -->
                                 <TextBox Text="{Binding AddTrackUrl, UpdateSourceTrigger=PropertyChanged}"
                                          Width="300"/>
+
+                                <!-- Confirm -->
                                 <Button Content="✓"
                                         Command="{Binding ConfirmAddTrackCommand}"
                                         Height="40" Width="40"/>
+
+                                <!-- Cancel -->
                                 <Button Content="✕"
                                         Command="{Binding CancelAddTrackCommand}"
                                         Height="40" Width="40"/>
+                                
                             </StackPanel>
+                            
                         </StackPanel>
 
                         <!-- Filter Playlist Prompt -->
                         <StackPanel Grid.Row="5" Margin="0,4,0,0"
                                     Orientation="Horizontal"
                                     Visibility="{Binding Session.PlaylistFilterOpen, Converter={StaticResource BoolToVisibility}}">
+
+                            <!-- Filter Textbox -->
                             <TextBox Text="{Binding Session.PlaylistFilter, UpdateSourceTrigger=PropertyChanged}"
                                      Width="300"
                                      ToolTip="Filter tracks by name"/>
+
+                            <!-- Clear -->
                             <Button Content="✕"
                                     Command="{Binding ClearFilterCommand}"
-                                    Height="40" Width="40"
+                                    Style="{StaticResource IconButton}"
+                                    IsEnabled="{Binding Session.IsFilterActive}"
                                     ToolTip="Clear filter"/>
                         </StackPanel>
                     </Grid>
@@ -186,47 +237,72 @@
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <StackPanel>
-                            <Grid Margin="0,2" HorizontalAlignment="Stretch">
+                            <Grid Margin="0,0,0,5"
+                                  HorizontalAlignment="Stretch">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="15"/>
                                     <ColumnDefinition Width="20"/>
-                                    <ColumnDefinition Width="30"/>
-                                    <ColumnDefinition Width="40"/>
+                                    <ColumnDefinition Width="50"/>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
 
+                                <!-- Checkbox -->
                                 <CheckBox Grid.Column="0"
                                           IsChecked="{Binding IsSelected, Mode=TwoWay}"
                                           VerticalAlignment="Center"
-                                          Margin="0,0,6,0"
+                                          Margin="5,0,5,0"
                                           ToolTip="Select track"/>
 
-                                <Button Grid.Column="1"
-                                        Content="▶"
-                                        Command="{Binding PlayCommand}"
-                                        Style="{StaticResource IconButton}"
-                                        Width="28" Height="28" Margin="0,0,6,0"
-                                        ToolTip="Play this track"/>
-
-                                <TextBlock Grid.Column="2" Text="{Binding DownloadedLabel}" Foreground="{DynamicResource SuccessColor}" VerticalAlignment="Center"/>
-                                <TextBlock Grid.Column="3"
+                                <!-- Display Order -->
+                                <TextBlock Grid.Column="1"
                                            Text="{Binding DisplayOrder}"
                                            Foreground="{DynamicResource DisabledTextColor}"
                                            VerticalAlignment="Center"/>
-
-                                <Border Grid.Column="4" Width="32" Height="32" CornerRadius="4"
-                                        Background="{DynamicResource TextboxBackgroundColor}"
-                                        VerticalAlignment="Center" HorizontalAlignment="Left"
-                                        ClipToBounds="True">
-                                    <Image Source="{Binding ThumbnailPath, Converter={StaticResource StringToImageSource}}"
-                                           Stretch="UniformToFill"
-                                           HorizontalAlignment="Center"
+                                
+                                <!-- Download Indicator -->
+                                <TextBlock Grid.Column="2" 
+                                           Text="{Binding DownloadedLabel}" 
+                                           Foreground="{DynamicResource SuccessColor}" 
                                            VerticalAlignment="Center"/>
+
+                                <!-- Track Cover Image -->
+                                <Border Grid.Column="3" 
+                                        Width="40" Height="40" 
+                                        Margin="0,5,0,0"
+                                        VerticalAlignment="Center" 
+                                        HorizontalAlignment="Left"
+                                        ClipToBounds="True">
+                                    <Grid>
+                                        <Image Source="{Binding ThumbnailPath, Converter={StaticResource StringToImageSource}}"
+                                               Stretch="UniformToFill"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"/>
+                                        <Button Content="▶"
+                                                Command="{Binding PlayCommand}"
+                                                ToolTip="Play this track">
+                                            <Button.Style>
+                                                <Style TargetType="Button"
+                                                       BasedOn="{StaticResource IconButton}">
+                                                    <Setter Property="Background" Value="Transparent"/>
+                                                    <Setter Property="BorderThickness" Value="0"/>
+                                                    <Setter Property="Opacity" Value="0"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Border}}"
+                                                                     Value="True">
+                                                            <Setter Property="Opacity" Value="1"/>
+                                                            <Setter Property="Background" Value="Transparent"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+                                    </Grid>
                                 </Border>
 
-                                <TextBlock Grid.Column="5" Text="{Binding Name}"
+                                <!-- Track Name -->
+                                <TextBlock Grid.Column="4" Text="{Binding Name}"
                                            TextTrimming="CharacterEllipsis"
                                            VerticalAlignment="Center">
                                     <TextBlock.Style>
@@ -241,13 +317,20 @@
                                         </Style>
                                     </TextBlock.Style>
                                 </TextBlock>
-                                <TextBlock Grid.Column="6" Text="{Binding Duration}"
+
+                                <!-- Track Duration -->
+                                <TextBlock Grid.Column="5" Text="{Binding Duration}"
                                            Foreground="{DynamicResource DisabledTextColor}"
                                            VerticalAlignment="Center"
                                            Margin="0,0,8,0"/>
                             </Grid>
-
-                            <Rectangle Height="1" Fill="{DynamicResource SeparatorColor}"/>
+                            
+                            <!--- Bottom Separator -->
+                            <Rectangle 
+                                Height="1" 
+                                Opacity="0.25"
+                                Fill="{DynamicResource SeparatorColor}"/>
+                            
                         </StackPanel>
                     </DataTemplate>
                 </ListBox.ItemTemplate>

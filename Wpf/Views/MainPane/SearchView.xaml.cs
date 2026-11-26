@@ -1,4 +1,5 @@
 ﻿using Ognia.Wpf.ViewModels.MainPane;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -21,12 +22,12 @@ public partial class SearchView : UserControl
         }
     }
 
-    private void Thumbnail_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    private void Thumbnail_Click(object sender, MouseButtonEventArgs e)
     {
         if (sender is not FrameworkElement fe) return;
         if (fe.Tag is not string url || string.IsNullOrWhiteSpace(url)) return;
 
-        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+        Process.Start(new ProcessStartInfo
         {
             FileName = url,
             UseShellExecute = true

@@ -8,13 +8,13 @@ namespace Ognia.Wpf.ViewModels.MainPane;
 
 public sealed class SearchViewModel : ViewModelBase
 {
-    private readonly YouTubeSearch _search = new();
+    public AppSession Session { get; }
+    public ObservableCollection<ResultRowViewModel> Results { get; } = new();
+    public IReadOnlyList<int> PageSizeOptions { get; }
+    public bool HasNextPage => Results.Count == PageSize;
+    public string PageLabel => $"Page {Page}";
 
-    private string _query = string.Empty;
-    private string _status = string.Empty;
-    private int _page = 1;
-    private bool _isBusy;
-    private int _pageSize = 20;
+    private readonly YouTubeSearch _search = new();
 
     public SearchViewModel(AppSession session)
     {
@@ -36,20 +36,10 @@ public sealed class SearchViewModel : ViewModelBase
             async p => await PreviewAsync((ResultRowViewModel)p!),
             p => p is ResultRowViewModel);
 
-        AddToPlaylistCommand = new RelayCommand(
-            async p => await AddToPlaylistAsync((ResultRowViewModel)p!),
-            p => p is ResultRowViewModel r && r.SelectedPlaylist != null);
-
         PageSizeOptions = new[] { 10, 20, 30, 50 };
     }
 
-    public AppSession Session { get; }
-
-    public ObservableCollection<ResultRowViewModel> Results { get; } = new();
-
-    public IReadOnlyList<int> PageSizeOptions { get; }
-
-    #region State
+    #region Bindable Properties
 
     public string Query
     {
@@ -60,12 +50,14 @@ public sealed class SearchViewModel : ViewModelBase
             CommandManager.InvalidateRequerySuggested();
         }
     }
+    private string _query = string.Empty;
 
     public string Status
     {
         get => _status;
         set => SetProperty(ref _status, value);
     }
+    private string _status = string.Empty;
 
     public bool IsBusy
     {
@@ -76,6 +68,7 @@ public sealed class SearchViewModel : ViewModelBase
             CommandManager.InvalidateRequerySuggested();
         }
     }
+    private bool _isBusy;
 
     public int Page
     {
@@ -87,6 +80,7 @@ public sealed class SearchViewModel : ViewModelBase
             CommandManager.InvalidateRequerySuggested();
         }
     }
+    private int _page = 1;
 
     public int PageSize
     {
@@ -99,10 +93,7 @@ public sealed class SearchViewModel : ViewModelBase
             _ = GoToPageAsync(1);
         }
     }
-
-    public bool HasNextPage => Results.Count == PageSize;
-
-    public string PageLabel => $"Page {Page}";
+    private int _pageSize = 20;
 
     #endregion
 
@@ -112,7 +103,6 @@ public sealed class SearchViewModel : ViewModelBase
     public RelayCommand NextPageCommand { get; }
     public RelayCommand PrevPageCommand { get; }
     public RelayCommand PreviewCommand { get; }
-    public RelayCommand AddToPlaylistCommand { get; }
 
     #endregion
 
@@ -200,24 +190,6 @@ public sealed class SearchViewModel : ViewModelBase
             NotificationService.Instance.Error($"Preview failed: {ex.Message}");
             row.IsPlaying = false;
         }
-    }
-
-    private async Task AddToPlaylistAsync(ResultRowViewModel row)
-    {
-        if (row?.SelectedPlaylist == null) return;
-
-        var url = row.SourceUrl;
-        if (string.IsNullOrWhiteSpace(url))
-        {
-            NotificationService.Instance.Error("Could not build a source URL for this result.");
-            return;
-        }
-
-        var result = await Session.Repo.AddTracksAsync(row.SelectedPlaylist.Id, url);
-        if (!result.Success)
-            NotificationService.Instance.Error(result.Error ?? "Failed to add track.");
-        else
-            NotificationService.Instance.Info($"Added '{row.Name}' to '{row.SelectedPlaylist.Name}'.");
     }
 
     #endregion

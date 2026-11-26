@@ -52,8 +52,8 @@
 
     <!-- Icon variant: shape only -->
     <Style x:Key="IconButton" TargetType="Button" BasedOn="{StaticResource BaseButton}">
-        <Setter Property="Width" Value="40"/>
-        <Setter Property="Height" Value="40"/>
+        <Setter Property="Width" Value="30"/>
+        <Setter Property="Height" Value="30"/>
         <Setter Property="Margin" Value="5"/>
     </Style>
 
@@ -375,7 +375,6 @@
     <Style TargetType="ListBoxItem">
         <Setter Property="Foreground" Value="{DynamicResource DisabledTextColor}"/>
         <Setter Property="Background" Value="{DynamicResource ListItemBackgroundColor}"/>
-        <Setter Property="Padding" Value="5"/>
         <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
 
         <Setter Property="Template">

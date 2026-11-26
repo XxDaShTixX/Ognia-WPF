@@ -1,6 +1,7 @@
 ﻿using Ognia.Wpf.Caching;
 using Ognia.Wpf.Library;
 using Ognia.Wpf.Models.Playlist;
+using Ognia.Wpf.Navigation;
 using Ognia.Wpf.Services;
 using Ognia.Wpf.Session;
 using Ognia.Wpf.ViewModels.Shell;
@@ -10,16 +11,10 @@ namespace Ognia.Wpf.ViewModels.MainPane;
 
 public sealed class PlaylistViewModel : ViewModelBase
 {
-    private readonly PlaybackViewModel _playback;
-    private readonly Navigation.IShellNavigator _nav;
+    public AppSession Session { get; }
+    private readonly IShellNavigator _nav;
 
-    private string _renameInput = string.Empty;
-    private bool _isRenameOpen;
-
-    private string _addTrackUrl = string.Empty;
-    private bool _isAddTrackOpen;
-
-    public PlaylistViewModel(AppSession session, Navigation.IShellNavigator nav)
+    public PlaylistViewModel(AppSession session, IShellNavigator nav)
     {
         Session = session;
         _nav = nav;
@@ -34,7 +29,12 @@ public sealed class PlaylistViewModel : ViewModelBase
         ToggleShuffleCommand = new RelayCommand(
             _ => _playback.IsShuffleOn = !_playback.IsShuffleOn);
 
-        ToggleFilterCommand = new RelayCommand(_ => Session.PlaylistFilterOpen = !Session.PlaylistFilterOpen);
+        ToggleFilterCommand = new RelayCommand(_ =>
+        {
+            Session.PlaylistFilterOpen = !Session.PlaylistFilterOpen;
+            if (!Session.PlaylistFilterOpen)
+                Session.ClearPlaylistFilter();
+        });
 
         ClearFilterCommand = new RelayCommand(_ => Session.ClearPlaylistFilter());
 
@@ -88,7 +88,10 @@ public sealed class PlaylistViewModel : ViewModelBase
         };
     }
 
-    public AppSession Session { get; }
+    private readonly PlaybackViewModel _playback;
+
+
+    #region Commands
 
     public RelayCommand PlayPlaylistCommand { get; }
     public RelayCommand ToggleShuffleCommand { get; }
@@ -103,6 +106,10 @@ public sealed class PlaylistViewModel : ViewModelBase
     public RelayCommand CancelAddTrackCommand { get; }
     public RelayCommand DeletePlaylistCommand { get; }
 
+    #endregion
+
+    #region Bindable Properties
+
     public string ShuffleLabel => _playback.IsShuffleOn ? "⇄" : "⊘";
 
     public bool IsRenameOpen
@@ -114,6 +121,7 @@ public sealed class PlaylistViewModel : ViewModelBase
                 System.Windows.Input.CommandManager.InvalidateRequerySuggested();
         }
     }
+    private bool _isRenameOpen;
 
     public string RenameInput
     {
@@ -124,6 +132,7 @@ public sealed class PlaylistViewModel : ViewModelBase
                 System.Windows.Input.CommandManager.InvalidateRequerySuggested();
         }
     }
+    private string _renameInput = string.Empty;
 
     public bool IsAddTrackOpen
     {
@@ -134,6 +143,7 @@ public sealed class PlaylistViewModel : ViewModelBase
                 System.Windows.Input.CommandManager.InvalidateRequerySuggested();
         }
     }
+    private bool _isAddTrackOpen;
 
     public string AddTrackUrl
     {
@@ -144,6 +154,9 @@ public sealed class PlaylistViewModel : ViewModelBase
                 System.Windows.Input.CommandManager.InvalidateRequerySuggested();
         }
     }
+    private string _addTrackUrl = string.Empty;
+
+    #endregion
 
     #region Play
 
