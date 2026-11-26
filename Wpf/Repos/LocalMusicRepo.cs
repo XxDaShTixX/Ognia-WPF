@@ -1,7 +1,7 @@
-﻿using Ognia.Wpf.Local;
-using Ognia.Wpf.Models.Local;
+﻿using Ognia.Wpf.Models.Local;
 using Ognia.Wpf.Models.Playlist;
 using Ognia.Wpf.Models.Track;
+using Ognia.Wpf.YouTube;
 
 namespace Ognia.Wpf.Repos;
 

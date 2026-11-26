@@ -1,5 +1,6 @@
 ﻿using Ognia.Wpf.Models.Playlist;
 using Ognia.Wpf.Models.Track;
+using Ognia.Wpf.TrackSources;
 
 namespace Ognia.Wpf.Repos
 {
@@ -75,7 +76,7 @@ namespace Ognia.Wpf.Repos
                 if (!byId.TryGetValue(id, out var track)) { errors.Add($"Track {id} not found in source."); continue; }
                 if (alreadyInTarget.Contains(id)) { skipped++; continue; }
 
-                var url = Helpers.TrackSourceUrlResolver.BuildUrl(track.SourceName, track.SourceId);
+                var url = TrackSourceUrlResolver.BuildUrl(track.SourceName, track.SourceId);
                 if (string.IsNullOrWhiteSpace(url)) { errors.Add($"Could not build URL for '{track.Name}'."); continue; }
 
                 var result = await AddTracksAsync(targetPlaylistId, url);

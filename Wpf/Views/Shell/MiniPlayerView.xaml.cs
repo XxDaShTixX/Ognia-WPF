@@ -1,6 +1,6 @@
 ﻿using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
-using Ognia.Wpf.ViewModels;
+using Ognia.Wpf.ViewModels.Shell;
 
 namespace Ognia.Wpf.Views.Shell;
 

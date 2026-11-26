@@ -1,4 +1,4 @@
-﻿using Ognia.Wpf.Helpers;
+﻿using Ognia.Wpf.Authentication;
 using Ognia.Wpf.Models.Auth;
 using Ognia.Wpf.Models.Playlist;
 using Ognia.Wpf.Models.Track;

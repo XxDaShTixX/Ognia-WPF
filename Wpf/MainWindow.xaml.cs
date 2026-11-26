@@ -1,9 +1,11 @@
-﻿using Ognia.Wpf.Enums;
-using Ognia.Wpf.Helpers;
+﻿using Ognia.Wpf.Authentication;
+using Ognia.Wpf.Configuration;
+using Ognia.Wpf.Enums;
 using Ognia.Wpf.Navigation;
 using Ognia.Wpf.Repos;
 using Ognia.Wpf.Services;
-using Ognia.Wpf.ViewModels;
+using Ognia.Wpf.Session;
+using Ognia.Wpf.ViewModels.Shell;
 using Ognia.Wpf.Views.Shell;
 using System.Runtime.InteropServices;
 using System.Windows;

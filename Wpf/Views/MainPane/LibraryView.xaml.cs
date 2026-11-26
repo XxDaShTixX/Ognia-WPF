@@ -3,7 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using Ognia.Wpf.Models.Playlist;
-using Ognia.Wpf.ViewModels;
+using Ognia.Wpf.ViewModels.MainPane;
 
 namespace Ognia.Wpf.Views.MainPane;
 

@@ -1,5 +1,5 @@
 ﻿using Ognia.Wpf.Repos;
-using Ognia.Wpf.ViewModels;
+using Ognia.Wpf.ViewModels.Shell;
 
 namespace Ognia.Wpf.Navigation;
 

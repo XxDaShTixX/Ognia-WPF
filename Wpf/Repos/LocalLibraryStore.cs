@@ -1,4 +1,4 @@
-﻿using Ognia.Wpf.Helpers;
+﻿using Ognia.Wpf.Configuration;
 using Ognia.Wpf.Models.Local;
 using System.IO;
 using System.Text.Json;

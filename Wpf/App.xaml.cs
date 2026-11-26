@@ -1,6 +1,7 @@
-﻿using Ognia.Wpf.Helpers;
-using Ognia.Wpf.Local;
+﻿using Ognia.Wpf.Configuration;
 using Ognia.Wpf.Services;
+using Ognia.Wpf.Theming;
+using Ognia.Wpf.YouTube;
 using System.Windows;
 
 namespace Ognia.Wpf;

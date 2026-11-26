@@ -1,4 +1,4 @@
-﻿using Ognia.Wpf.Helpers;
+﻿using Ognia.Wpf.Configuration;
 using System.Windows.Threading;
 using Velopack;
 using Velopack.Sources;

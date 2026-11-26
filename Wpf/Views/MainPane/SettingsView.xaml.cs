@@ -3,9 +3,9 @@ using System.Windows.Controls;
 using Ognia.Wpf.Navigation;
 using Ognia.Wpf.Services;
 using Ognia.Wpf.Session;
-using Ognia.Wpf.ViewModels;
+using Ognia.Wpf.ViewModels.MainPane;
 
-namespace Ognia.Wpf.Views.MainPane.Settings;
+namespace Ognia.Wpf.Views.MainPane;
 
 public partial class SettingsView : UserControl
 {

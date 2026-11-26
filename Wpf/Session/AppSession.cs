@@ -1,9 +1,13 @@
-﻿using Ognia.Wpf.Helpers;
+﻿using Ognia.Wpf.Caching;
+using Ognia.Wpf.Configuration;
+using Ognia.Wpf.Library;
 using Ognia.Wpf.Models.Playlist;
 using Ognia.Wpf.Models.Track;
 using Ognia.Wpf.Repos;
 using Ognia.Wpf.Services;
 using Ognia.Wpf.ViewModels;
+using Ognia.Wpf.ViewModels.RightPane;
+using Ognia.Wpf.ViewModels.Shell;
 using System.Collections.ObjectModel;
 
 namespace Ognia.Wpf.Session;

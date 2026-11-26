@@ -1,9 +1,9 @@
-﻿using System.Collections.ObjectModel;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Ognia.Wpf.Services;
 using Ognia.Wpf.ViewModels;
+using Ognia.Wpf.ViewModels.MainPane;
 
 namespace Ognia.Wpf.Views.MainPane;
 
