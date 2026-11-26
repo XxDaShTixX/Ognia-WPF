@@ -1,4 +1,4 @@
-﻿using Ognia.Wpf.ViewModels;
+﻿using Ognia.Wpf.ViewModels.RightPane;
 using System.Windows.Controls;
 using System.Windows.Input;
 

@@ -1,12 +1,13 @@
-﻿using Ognia.Wpf.Helpers;
+﻿using Ognia.Wpf.Authentication;
+using Ognia.Wpf.Configuration;
+using Ognia.Wpf.Library;
 using Ognia.Wpf.Models.Playlist;
 using Ognia.Wpf.Repos;
 using Ognia.Wpf.Services;
 using Ognia.Wpf.Session;
 using Ognia.Wpf.ViewModels;
+using Ognia.Wpf.ViewModels.Shell;
 using Ognia.Wpf.Views.Auth;
-using Ognia.Wpf.Views.MainPane;
-using Ognia.Wpf.Views.MainPane.Settings;
 using Ognia.Wpf.Views.RightPane;
 using Ognia.Wpf.Views.Shell;
 using System.Windows;
@@ -17,72 +18,27 @@ public sealed class AppNavigator : IAppNavigator
 {
     private readonly ApiClientService _api;
     private readonly Action<object> _setScreen;
-    private AppSession? _session;
-    private PlaybackViewModel? _playback;
-    private DownloadViewModel? _download;
-    private TrackDetailsViewModel? _rightVm;
-    private MultiTrackSelectionViewModel? _multiVm;
+    private readonly IViewFactory _viewFactory;
+
+    private ShellContext? _context;
     private ShellView? _shell;
 
     public AppNavigator(ApiClientService api, Action<object> setScreen)
     {
+        // Reference
         _api = api;
         _setScreen = setScreen;
+
+        // Instantiate
+        _viewFactory = new ViewFactory();
     }
+
+    public PlaybackViewModel? Playback => _context?.Playback;
+
+    #region Events
 
     public event Action<object>? MainContentChanged;
     public event Action<object?>? RightContentChanged;
-
-    public PlaybackViewModel? Playback => _playback;
-
-    #region IShellNavigator
-
-    public void ShowLibrary()
-    {
-        // Leave SelectedPlaylist alone; the Library view doesn't care, and it
-        // preserves the id used to restore the playback bar on next launch.
-        _session!.SelectedTrack = null;
-        MainContentChanged?.Invoke(new LibraryView
-        {
-            DataContext = new LibraryViewModel(_session, this)
-        });
-    }
-
-    public void ShowPlaylist(PlaylistResponse playlist)
-    {
-        _session!.SelectedPlaylist = playlist;
-
-        PlaybackSessionState.Instance.LastOpenedPlaylistId = playlist.Id;
-        AppSettings.Instance.Save();
-
-        MainContentChanged?.Invoke(new PlaylistView
-        {
-            DataContext = new PlaylistViewModel(_session, this)
-        });
-    }
-
-    public void ShowSettings()
-    {
-        MainContentChanged?.Invoke(new SettingsView(_api, this, _session!));
-    }
-
-    public void ShowSearch()
-    {
-        _session!.SelectedTrack = null;
-        MainContentChanged?.Invoke(new SearchView
-        {
-            DataContext = new SearchViewModel(_session)
-        });
-    }
-
-    public void ShowTrackDetails(object? _) => RefreshRightPane();
-
-    public void ClearRightPane()
-    {
-        if (_session == null) return;
-        _session.SelectedTrack = null;
-        RightContentChanged?.Invoke(null);
-    }
 
     #endregion
 
@@ -183,18 +139,117 @@ public sealed class AppNavigator : IAppNavigator
 
     #endregion
 
+    #region IShellNavigator
+
+    public void ShowLibrary()
+    {
+        // Leave SelectedPlaylist alone; the Library view doesn't care, and it
+        // preserves the id used to restore the playback bar on next launch.
+        _context!.Session.SelectedTrack = null;
+
+        MainContentChanged?.Invoke(
+            _viewFactory.CreateLibraryView(_context!.Session, this));
+    }
+
+    public void ShowPlaylist(PlaylistResponse playlist)
+    {
+        _context!.Session.SelectedPlaylist = playlist;
+
+        PlaybackSessionState.Instance.LastOpenedPlaylistId = playlist.Id;
+        AppSettings.Instance.Save();
+
+        MainContentChanged?.Invoke(
+            _viewFactory.CreatePlaylistView(_context!.Session, this));
+    }
+
+    public void ShowSettings()
+    {
+        MainContentChanged?.Invoke(
+            _viewFactory.CreateSettingsView(
+                _api,
+                this,
+                _context!.Session));
+    }
+
+    public void ShowSearch()
+    {
+        _context!.Session.SelectedTrack = null;
+
+        MainContentChanged?.Invoke(
+            _viewFactory.CreateSearchView(_context!.Session));
+    }
+
+    public void ShowTrackDetails(object? _) => RefreshRightPane();
+
+    public void ClearRightPane()
+    {
+        if (_context!.Session == null) return;
+        _context!.Session.SelectedTrack = null;
+        RightContentChanged?.Invoke(null);
+    }
+
+    #endregion
+
+
+
     #region Shell lifecycle
 
     public void ShowShell(IMusicRepo repo)
     {
         DisposeShell();
 
-        _session = CreateSession(repo);
-        InitializePlayback(_session);
-        InitializeRightPane(_session);
+        var session = CreateSession(repo);
 
-        _shell = CreateShell(_session);
+        _context = new ShellContext(session);
 
+        InitializeRightPane(session);
+
+        _shell = CreateShell(session);
+
+        InitializeShell();
+
+        SetScreen(_shell);
+    }
+
+    private void RefreshRightPane()
+    {
+        if (_context == null)
+        {
+            RightContentChanged?.Invoke(null);
+            return;
+        }
+
+        if (_context.Session.HasMultiSelection)
+        {
+            _context.MultiSelection.OnPropertyChangedPublic();
+
+            RightContentChanged?.Invoke(
+                new MultiTrackActionsView
+                {
+                    DataContext = _context.MultiSelection
+                });
+
+            return;
+        }
+
+        if (_context.Session.SelectedTrack == null)
+        {
+            RightContentChanged?.Invoke(null);
+            return;
+        }
+
+        // Fresh view per selection — kills stale-binding and stale-CanExecute issues.
+        _context.Details.Refresh();
+
+        RightContentChanged?.Invoke(
+            new TrackDetailsView
+            {
+                DataContext = _context.Details
+            });
+    }
+
+    private void InitializeShell()
+    {
         SubscribeEvents();
 
         ShowLibrary();
@@ -202,31 +257,6 @@ public sealed class AppNavigator : IAppNavigator
         ConfigurePlaybackBar();
 
         RefreshRightPane();
-
-        SetScreen(_shell);
-    }
-
-    private void RefreshRightPane()
-    {
-        if (_session == null) { RightContentChanged?.Invoke(null); return; }
-
-        if (_session.HasMultiSelection && _multiVm != null)
-        {
-            _multiVm.OnPropertyChangedPublic();
-            RightContentChanged?.Invoke(new MultiTrackActionsView { DataContext = _multiVm });
-            return;
-        }
-
-        if (_rightVm == null || _session.SelectedTrack == null)
-        {
-            RightContentChanged?.Invoke(null);
-            return;
-        }
-
-        // Fresh view per selection — kills stale-binding and stale-CanExecute issues.
-        // The VM instance is preserved, so its subscriptions stay alive.
-        _rightVm.Refresh();
-        RightContentChanged?.Invoke(new TrackDetailsView { DataContext = _rightVm });
     }
 
     /// <summary>
@@ -238,19 +268,8 @@ public sealed class AppNavigator : IAppNavigator
     {
         UnsubscribeEvents();
 
-        if (_session != null)
-        {
-            _session.Details = null;
-        }
-
-        _rightVm?.Dispose();
-        _rightVm = null;
-        _multiVm = null;
-
-        _playback?.Dispose();
-        _playback = null;
-        _download = null;
-        _session = null;
+        _context?.Dispose();
+        _context = null;
 
         _shell = null;
     }
@@ -268,19 +287,7 @@ public sealed class AppNavigator : IAppNavigator
 
     private void InitializeRightPane(AppSession session)
     {
-        _rightVm = new TrackDetailsViewModel(session);
-        _multiVm = new MultiTrackSelectionViewModel(session);
-
-        session.Details = _rightVm;
         session.SelectionChanged += RefreshRightPane;
-    }
-
-    private void InitializePlayback(AppSession session)
-    {
-        _playback = new PlaybackViewModel();
-        _download = new DownloadViewModel();
-
-        session.AttachPlayer(_playback, _download);
     }
 
     private ShellView CreateShell(AppSession session)
@@ -294,13 +301,11 @@ public sealed class AppNavigator : IAppNavigator
     private void ConfigurePlaybackBar()
     {
         ArgumentNullException.ThrowIfNull(_shell);
-        ArgumentNullException.ThrowIfNull(_session);
-        ArgumentNullException.ThrowIfNull(_playback);
-        ArgumentNullException.ThrowIfNull(_download);
+        ArgumentNullException.ThrowIfNull(_context);
 
         _shell.SetPlaybackContent(new PlaybackBarView
         {
-            DataContext = new PlaybackBarViewModel(_session, _playback, _download)
+            DataContext = new PlaybackBarViewModel(_context.Session, _context.Playback, _context.Download)
         });
     }
 
@@ -321,9 +326,9 @@ public sealed class AppNavigator : IAppNavigator
             RightContentChanged -= _shell.SetRightContent;
         }
 
-        if (_session != null)
+        if (_context != null)
         {
-            _session.SelectionChanged -= RefreshRightPane;
+            _context.Session.SelectionChanged -= RefreshRightPane;
         }
     }
 }

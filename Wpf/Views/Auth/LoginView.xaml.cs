@@ -1,7 +1,7 @@
 ﻿using System.Windows.Controls;
 using Ognia.Wpf.Navigation;
 using Ognia.Wpf.Services;
-using Ognia.Wpf.ViewModels;
+using Ognia.Wpf.ViewModels.Auth;
 
 namespace Ognia.Wpf.Views.Auth;
 

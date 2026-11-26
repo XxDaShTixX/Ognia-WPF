@@ -1,7 +1,7 @@
-﻿using Ognia.Wpf.Helpers;
-using Ognia.Wpf.Models.Playlist;
+﻿using Ognia.Wpf.Models.Playlist;
 using Ognia.Wpf.Models.Track;
 using Ognia.Wpf.Session;
+using Ognia.Wpf.TrackSources;
 using System.Collections.ObjectModel;
 
 namespace Ognia.Wpf.ViewModels;

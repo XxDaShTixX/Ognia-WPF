@@ -1,5 +1,4 @@
-﻿using Ognia.Wpf.Helpers;
-using Ognia.Wpf.ViewModels;
+﻿using Ognia.Wpf.ViewModels.MainPane;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
