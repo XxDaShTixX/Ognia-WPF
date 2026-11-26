@@ -115,14 +115,12 @@
                                             Command="{Binding DataContext.PreviewCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                             CommandParameter="{Binding}"
                                             Style="{StaticResource IconButton}"
-                                            Width="32" Height="32"
-                                            Margin="0,0,6,0"
+                                            Width="30" Height="30"
                                             ToolTip="Preview"/>
 
                                     <!-- Playlist Dropdown -->
                                     <ComboBox Grid.Column="3"
                                               Width="160"
-                                              Margin="0,0,6,0"
                                               VerticalAlignment="Center"
                                               ItemsSource="{Binding Playlists}"
                                               SelectedItem="{Binding SelectedPlaylist, Mode=TwoWay}">
@@ -135,11 +133,13 @@
 
                                     <!-- Add Button -->
                                     <Button Grid.Column="4"
-                                            Content="Add"
+                                            Content="+"
+                                            FontSize="20"
                                             Command="{Binding DataContext.AddToPlaylistCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                             CommandParameter="{Binding}"
-                                            Style="{StaticResource PrimaryButton}"
-                                            Width="60" Height="30"/>
+                                            IsEnabled="{Binding IsAddButtonEnabled}"
+                                            Style="{StaticResource IconButton}"
+                                            Height="30" Width="30"/>
                                 </Grid>
                             </Border>
                         </DataTemplate>

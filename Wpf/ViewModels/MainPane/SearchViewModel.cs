@@ -8,13 +8,13 @@ namespace Ognia.Wpf.ViewModels.MainPane;
 
 public sealed class SearchViewModel : ViewModelBase
 {
-    private readonly YouTubeSearch _search = new();
+    public AppSession Session { get; }
+    public ObservableCollection<ResultRowViewModel> Results { get; } = new();
+    public IReadOnlyList<int> PageSizeOptions { get; }
+    public bool HasNextPage => Results.Count == PageSize;
+    public string PageLabel => $"Page {Page}";
 
-    private string _query = string.Empty;
-    private string _status = string.Empty;
-    private int _page = 1;
-    private bool _isBusy;
-    private int _pageSize = 20;
+    private readonly YouTubeSearch _search = new();
 
     public SearchViewModel(AppSession session)
     {
@@ -43,13 +43,7 @@ public sealed class SearchViewModel : ViewModelBase
         PageSizeOptions = new[] { 10, 20, 30, 50 };
     }
 
-    public AppSession Session { get; }
-
-    public ObservableCollection<ResultRowViewModel> Results { get; } = new();
-
-    public IReadOnlyList<int> PageSizeOptions { get; }
-
-    #region State
+    #region Bindable Properties
 
     public string Query
     {
@@ -60,12 +54,14 @@ public sealed class SearchViewModel : ViewModelBase
             CommandManager.InvalidateRequerySuggested();
         }
     }
+    private string _query = string.Empty;
 
     public string Status
     {
         get => _status;
         set => SetProperty(ref _status, value);
     }
+    private string _status = string.Empty;
 
     public bool IsBusy
     {
@@ -76,6 +72,7 @@ public sealed class SearchViewModel : ViewModelBase
             CommandManager.InvalidateRequerySuggested();
         }
     }
+    private bool _isBusy;
 
     public int Page
     {
@@ -87,6 +84,7 @@ public sealed class SearchViewModel : ViewModelBase
             CommandManager.InvalidateRequerySuggested();
         }
     }
+    private int _page = 1;
 
     public int PageSize
     {
@@ -99,10 +97,7 @@ public sealed class SearchViewModel : ViewModelBase
             _ = GoToPageAsync(1);
         }
     }
-
-    public bool HasNextPage => Results.Count == PageSize;
-
-    public string PageLabel => $"Page {Page}";
+    private int _pageSize = 20;
 
     #endregion
 
@@ -213,11 +208,25 @@ public sealed class SearchViewModel : ViewModelBase
             return;
         }
 
-        var result = await Session.Repo.AddTracksAsync(row.SelectedPlaylist.Id, url);
+        var targetId = row.SelectedPlaylist.Id;
+        var result = await Session.Repo.AddTracksAsync(targetId, url);
+
         if (!result.Success)
+        {
             NotificationService.Instance.Error(result.Error ?? "Failed to add track.");
-        else
-            NotificationService.Instance.Info($"Added '{row.Name}' to '{row.SelectedPlaylist.Name}'.");
+            return;
+        }
+
+        // Server/local repo reports Added==0 when the track was already present.
+        if (result.Added == 0)
+        {
+            NotificationService.Instance.Info($"'{row.Name}' is already in '{row.SelectedPlaylist.Name}'.");
+            row.MarkAddedTo(targetId);
+            return;
+        }
+
+        NotificationService.Instance.Info($"Added '{row.Name}' to '{row.SelectedPlaylist.Name}'.");
+        row.MarkAddedTo(targetId);
     }
 
     #endregion
