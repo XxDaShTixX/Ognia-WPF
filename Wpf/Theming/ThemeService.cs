@@ -32,6 +32,15 @@ public sealed class ThemeFile
 
 public static class ThemeService
 {
+    private const string DefaultThemeFileName = "Default.json";
+
+    private static readonly (string Resource, string FileName)[] BundledThemes =
+    {
+        ("Ognia.Wpf.Themes.Default.json", DefaultThemeFileName),
+        ("Ognia.Wpf.Themes.OgniaDark.json", "OgniaDark.json"),
+        ("Ognia.Wpf.Themes.OgniaLight.json", "OgniaLight.json")
+    };
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
@@ -44,39 +53,42 @@ public static class ThemeService
         Path.Combine(AppPaths.AppDataFolder, "Themes");
 
     /// <summary>
-    /// Idempotent. Seeds the local Themes folder from the embedded defaults if empty,
-    /// then applies the theme named in settings (falls back to Default.json).
+    /// Refreshes the three Ognia-managed bundled themes from embedded resources,
+    /// preserving every other file in the Themes folder as user-owned. Then applies
+    /// the theme named in settings, falling back to Default.json when it is missing
+    /// or invalid. Bundled themes are refreshed automatically on every startup.
     /// Throws if no theme can be applied — the app cannot render without theme brushes.
     /// </summary>
     public static void Initialize()
     {
         Directory.CreateDirectory(ThemesFolder);
-        SeedDefaultsIfMissing();
+        RefreshBundledThemes();
 
         var active = AppSettings.Instance.ActiveTheme;
         if (string.IsNullOrWhiteSpace(active) ||
             !File.Exists(Path.Combine(ThemesFolder, active)))
         {
-            active = "Default.json";
+            active = DefaultThemeFileName;
         }
 
         var applied = Apply(active);
 
-        if (!applied && !string.Equals(active, "Default.json", StringComparison.OrdinalIgnoreCase))
-            applied = Apply("Default.json");
+        if (!applied && !string.Equals(active, DefaultThemeFileName, StringComparison.OrdinalIgnoreCase))
+            applied = Apply(DefaultThemeFileName);
 
         if (!applied)
             throw new InvalidOperationException(
                 $"No usable theme found in '{ThemesFolder}'. " +
-                "Ensure at least Default.json, Dark.json, and Light.json exist.");
+                "Ensure the embedded Default.json theme is available.");
 
         // Persist whatever was actually applied — never the requested name if it failed.
-        AppSettings.Instance.ActiveTheme = ActiveThemeFileName ?? "Default.json";
+        AppSettings.Instance.ActiveTheme = ActiveThemeFileName ?? DefaultThemeFileName;
         AppSettings.Instance.Save();
     }
 
     /// <summary>
-    /// Applies the theme file with the given filename (e.g. "Dark.json").
+    /// Applies a theme file from the Themes folder, including either an Ognia-managed
+    /// bundled theme or a user-owned theme.
     /// Never throws — returns false on any failure.
     /// </summary>
     public static bool Apply(string fileName)
@@ -146,25 +158,23 @@ public static class ThemeService
     /// </summary>
     public static string? ActiveThemeFileName { get; private set; }
 
-    private static void SeedDefaultsIfMissing()
+    private static void RefreshBundledThemes()
     {
-        if (Directory.EnumerateFiles(ThemesFolder, "*.json").Any()) return;
-
         var assembly = Assembly.GetExecutingAssembly();
-        var resources = new (string Resource, string FileName)[]
-        {
-            ("Ognia.Wpf.Themes.Default.json", "Default.json"),
-            ("Ognia.Wpf.Themes.Dark.json",    "Dark.json"),
-            ("Ognia.Wpf.Themes.Light.json",   "Light.json"),
-        };
 
-        foreach (var (resource, fileName) in resources)
+        foreach (var (resource, fileName) in BundledThemes)
         {
             using var stream = assembly.GetManifestResourceStream(resource);
-            if (stream == null) continue;
+            if (stream == null)
+                throw new InvalidOperationException(
+                    $"Bundled theme resource '{resource}' was not found.");
 
             var targetPath = Path.Combine(ThemesFolder, fileName);
-            using var file = File.Create(targetPath);
+            using var file = new FileStream(
+                targetPath,
+                FileMode.Create,
+                FileAccess.Write,
+                FileShare.Read);
             stream.CopyTo(file);
         }
     }

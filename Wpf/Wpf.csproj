@@ -19,12 +19,8 @@
     <Resource Include="Assets\Brand\Logo\Ognia.png" />
     <Resource Include="Assets\Brand\Logo\Ognia-Transparent.png" />
     <EmbeddedResource Include="Themes\Default.json" />
-    <EmbeddedResource Include="Themes\Dark.json" />
-    <EmbeddedResource Include="Themes\Light.json" />
-    <Page Include="Themes\Default.json">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
+    <EmbeddedResource Include="Themes\OgniaDark.json" />
+    <EmbeddedResource Include="Themes\OgniaLight.json" />
   </ItemGroup>
 
   <ItemGroup>
