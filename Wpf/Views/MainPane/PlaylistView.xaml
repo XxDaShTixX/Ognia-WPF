@@ -15,7 +15,7 @@
 
                     <Border Grid.Column="0" Width="120" Height="120" CornerRadius="8"
                             ClipToBounds="True"
-                            Background="{DynamicResource TextboxBackgroundColor}">
+                            Background="{DynamicResource TextBoxBackgroundColor}">
                         <Image Source="{Binding Session.SelectedPlaylist.CachedCoverPath, Converter={StaticResource StringToImageSource}}"
                                Stretch="UniformToFill"
                                HorizontalAlignment="Center"
@@ -181,9 +181,9 @@
                                                 <DataTrigger Binding="{Binding Session.PlaylistFilterOpen}"
                                                              Value="True">
                                                     <Setter Property="Background"
-                                                            Value="{DynamicResource ButtonPressedColor}"/>
+                                                            Value="{DynamicResource PressedButtonBackgroundColor}"/>
                                                     <Setter Property="Foreground"
-                                                            Value="{DynamicResource LightTextColor}"/>
+                                                            Value="{DynamicResource HoverTextColor}"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
@@ -303,7 +303,7 @@
                                        AllowsTransparency="True"
                                        IsOpen="{Binding IsPlaylistPickerOpen, Mode=TwoWay}">
                                     <Border Background="{DynamicResource SidebarBackgroundColor}"
-                                            BorderBrush="{DynamicResource ButtonBorderColor}"
+                                            BorderBrush="{DynamicResource ButtonBorderBrushColor}"
                                             BorderThickness="1"
                                             CornerRadius="4"
                                             Padding="8"
@@ -406,7 +406,7 @@
                                 <!-- Download Indicator -->
                                 <TextBlock Grid.Column="2" 
                                            Text="{Binding DownloadedLabel}" 
-                                           Foreground="{DynamicResource SuccessColor}" 
+                                           Foreground="{DynamicResource SuccessTextColor}" 
                                            Margin="5,0,0,0"
                                            VerticalAlignment="Center"/>
 
@@ -450,11 +450,16 @@
                                            Text="{Binding Name}">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{DynamicResource LightTextColor}"/>
                                             <Setter Property="FontWeight" Value="Normal"/>
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding IsPlaying}" Value="True">
-                                                    <Setter Property="Foreground" Value="{DynamicResource LightTextColor}"/>
+                                                    <Setter Property="Foreground" Value="{DynamicResource AlternateTextColor}"/>
                                                     <Setter Property="FontWeight" Value="Bold"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
+                                                             Value="True">
+                                                    <Setter Property="Foreground" Value="{DynamicResource HoverTextColor}"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
@@ -472,7 +477,7 @@
                             <Rectangle 
                                 Height="1" 
                                 Opacity="0.25"
-                                Fill="{DynamicResource SeparatorColor}"/>
+                                Fill="{DynamicResource SeparatorBackgroundColor}"/>
                             
                         </StackPanel>
                     </DataTemplate>

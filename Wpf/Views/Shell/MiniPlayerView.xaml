@@ -14,7 +14,7 @@
                     Width="100" Height="100"
                     CornerRadius="4"
                     ClipToBounds="True"
-                    Background="{DynamicResource TextboxBackgroundColor}"
+                    Background="{DynamicResource TextBoxBackgroundColor}"
                     VerticalAlignment="Center"
                     Margin="8">
                 <Image Source="{Binding PlaybackViewModel.CurrentTrack.ThumbnailPath, Converter={StaticResource StringToImageSource}}"

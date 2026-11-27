@@ -55,7 +55,8 @@
                             ToolTip="Update Ognia">
                         <TextBlock Text="↻" 
                                    FontSize="20"
-                                   Foreground="{DynamicResource SuccessColor}"/>
+                                   Foreground="{DynamicResource SuccessTextColor}">
+                        </TextBlock>
                     </Button>
 
                     <!-- Mini Player -->

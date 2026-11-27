@@ -299,7 +299,7 @@
                                    HorizontalAlignment="Center"
                                    Margin="0,8,0,0"
                                    FontWeight="SemiBold"
-                                   Foreground="{DynamicResource WarningColor}">
+                                   Foreground="{DynamicResource WarningTextColor}">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">
                                     <Style.Triggers>

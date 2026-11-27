@@ -1,33 +1,47 @@
 ﻿<UserControl x:Class="Ognia.Wpf.Views.Shell.LeftPaneView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             DataContext="{Binding Left, RelativeSource={RelativeSource AncestorType=UserControl}}">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <Border Style="{StaticResource PaneBorder}"
-            CornerRadius="10" Margin="10" ClipToBounds="True">
+            CornerRadius="10"
+            Margin="10"
+            ClipToBounds="True">
 
         <DockPanel Style="{StaticResource SidebarDockPanel}">
 
             <StackPanel DockPanel.Dock="Top">
+
+                <!-- Library -->
                 <Button Command="{Binding LibraryCommand}"
-                        Tag="{Binding IsLibrarySelected}"
+                        Tag="{Binding IsLibrarySelected, Mode=OneWay}"
                         Style="{StaticResource NavigationButton}"
                         ToolTip="Library">
-                    <TextBlock Text="📚" FontSize="25"/>
+                    
+                    <TextBlock Text="📚"
+                               FontSize="{Binding FontSize, RelativeSource={RelativeSource AncestorType=Button}}"
+                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
                 </Button>
 
+                <!-- Search -->
                 <Button Command="{Binding SearchCommand}"
                         Tag="{Binding IsSearchSelected}"
                         Style="{StaticResource NavigationButton}"
                         ToolTip="Search">
-                    <TextBlock Text="🔎" FontSize="25"/>
+
+                    <TextBlock Text="🔎"
+                               FontSize="{Binding FontSize, RelativeSource={RelativeSource AncestorType=Button}}"
+                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
                 </Button>
 
+                <!-- Settings -->
                 <Button Command="{Binding SettingsCommand}"
                         Tag="{Binding IsSettingsSelected}"
                         Style="{StaticResource NavigationButton}"
                         ToolTip="Settings">
-                    <TextBlock Text="⚙️" FontSize="25"/>
+
+                    <TextBlock Text="⚙️"
+                               FontSize="{Binding FontSize, RelativeSource={RelativeSource AncestorType=Button}}"
+                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
                 </Button>
 
             </StackPanel>
@@ -36,8 +50,9 @@
                        HorizontalAlignment="Center"
                        VerticalAlignment="Center"
                        Visibility="{Binding Session.IsLoading, Converter={StaticResource BoolToVisibility}}"/>
+
         </DockPanel>
-        
+
     </Border>
-    
+
 </UserControl>

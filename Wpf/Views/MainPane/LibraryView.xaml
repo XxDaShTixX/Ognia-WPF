@@ -112,7 +112,7 @@
                                         <StackPanel VerticalAlignment="Center">
                                             <Border Width="120" Height="120" HorizontalAlignment="Center"
                                 CornerRadius="8" ClipToBounds="True"
-                                Background="{DynamicResource TextboxBackgroundColor}">
+                                Background="{DynamicResource TextBoxBackgroundColor}">
                                                 <Border.Clip>
                                                     <RectangleGeometry RadiusX="8" RadiusY="8" Rect="0,0,120,120"/>
                                                 </Border.Clip>
@@ -164,7 +164,7 @@
                                                 <Style TargetType="Button">
                                                     <Setter Property="Visibility" Value="Collapsed"/>
                                                     <Setter Property="Background" Value="#CC000000"/>
-                                                    <Setter Property="Foreground" Value="{DynamicResource ErrorColor}"/>
+                                                    <Setter Property="Foreground" Value="{DynamicResource ErrorTextColor}"/>
                                                     <Setter Property="Template">
                                                         <Setter.Value>
                                                             <ControlTemplate TargetType="Button">
@@ -183,7 +183,7 @@
                                                             <Setter Property="Visibility" Value="Visible"/>
                                                         </DataTrigger>
                                                         <Trigger Property="IsMouseOver" Value="True">
-                                                            <Setter Property="Background" Value="{DynamicResource ErrorColor}"/>
+                                                            <Setter Property="Background" Value="{DynamicResource ErrorBackgroundColor}"/>
                                                             <Setter Property="Foreground" Value="White"/>
                                                         </Trigger>
                                                     </Style.Triggers>
