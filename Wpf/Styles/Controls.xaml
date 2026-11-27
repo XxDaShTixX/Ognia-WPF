@@ -139,7 +139,7 @@
 
     <!-- =============== TEXT BLOCK =============== -->
 
-    <Style x:Key="PrimaryTextBlock" TargetType="TextBlock">
+    <Style TargetType="TextBlock">
         <Setter Property="Foreground" Value="{DynamicResource LightTextColor}"/>
         <Setter Property="FontSize" Value="12"/>
         <Setter Property="Margin" Value="0"/>

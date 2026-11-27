@@ -21,8 +21,6 @@ public sealed class TrackDetailsViewModel : ViewModelBase, IDisposable
     private string _renameInput = string.Empty;
     private bool _isRenameOpen;
 
-    private Models.Playlist.PlaylistResponse? _moveTarget;
-
     public TrackDetailsViewModel(AppSession session)
     {
         _session = session;
@@ -56,10 +54,6 @@ public sealed class TrackDetailsViewModel : ViewModelBase, IDisposable
             _ => OpenLocation(),
             _ => SelectedTrack != null
                  && LocalLibrary.FindLocalFile(SelectedTrack.PlaylistName, SelectedTrack.Name) != null);
-
-        MoveCommand = new RelayCommand(
-            async _ => await MoveToPlaylistAsync(),
-            _ => _moveTarget != null && SelectedTrack != null && SelectedPlaylist != null && !_session.IsBusy);
 
         _session.PropertyChanged += OnSessionPropertyChanged;
         ObserveSelectedTrack(_session.SelectedTrack);
@@ -109,19 +103,6 @@ public sealed class TrackDetailsViewModel : ViewModelBase, IDisposable
         }
     }
 
-    public IEnumerable<Models.Playlist.PlaylistResponse> MoveTargets =>
-        _session.Playlists.Where(p => p.Id != SelectedPlaylist?.Id);
-
-    public Models.Playlist.PlaylistResponse? MoveTarget
-    {
-        get => _moveTarget;
-        set
-        {
-            if (!SetProperty(ref _moveTarget, value)) return;
-            System.Windows.Input.CommandManager.InvalidateRequerySuggested();
-        }
-    }
-
     #endregion
 
     #region Commands
@@ -133,7 +114,6 @@ public sealed class TrackDetailsViewModel : ViewModelBase, IDisposable
     public RelayCommand DownloadCommand { get; }
     public RelayCommand RemoveDownloadCommand { get; }
     public RelayCommand OpenLocationCommand { get; }
-    public RelayCommand MoveCommand { get; }
 
     #endregion
 
@@ -156,7 +136,6 @@ public sealed class TrackDetailsViewModel : ViewModelBase, IDisposable
         if (_observedRow != null) _observedRow.PropertyChanged += OnRowPropertyChanged;
 
         // Selection change resets transient state.
-        _moveTarget = null;
         _isRenameOpen = false;
         _renameInput = string.Empty;
     }
@@ -189,8 +168,6 @@ public sealed class TrackDetailsViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(TrackSourceUrl));
         OnPropertyChanged(nameof(IsRenameOpen));
         OnPropertyChanged(nameof(RenameInput));
-        OnPropertyChanged(nameof(MoveTarget));
-        OnPropertyChanged(nameof(MoveTargets));
         System.Windows.Input.CommandManager.InvalidateRequerySuggested();
     }
 
@@ -300,30 +277,6 @@ public sealed class TrackDetailsViewModel : ViewModelBase, IDisposable
             await _session.LoadPlaylistsAsync();
 
             NotificationService.Instance.Info($"Removed '{removed.Name}' from playlist");
-        });
-    }
-
-    private async Task MoveToPlaylistAsync()
-    {
-        if (SelectedTrack == null || SelectedPlaylist == null || _moveTarget == null) return;
-
-        var source = SelectedPlaylist;
-        var target = _moveTarget;
-        var trackId = SelectedTrack.Id;
-
-        await _session.RunBusyAsync(async () =>
-        {
-            var result = await _session.Repo.MoveTracksAsync(source.Id, target.Id, new[] { trackId });
-
-            await _session.ReloadSelectedPlaylistTracksAsync();
-            await _session.LoadPlaylistsAsync();
-
-            if (result.Errors.Count > 0)
-                NotificationService.Instance.Error($"Move failed: {result.Errors[0]}");
-            else if (result.Skipped > 0)
-                NotificationService.Instance.Info($"Already present in '{target.Name}'; removed from source.");
-            else
-                NotificationService.Instance.Info($"Moved track to '{target.Name}'.");
         });
     }
 

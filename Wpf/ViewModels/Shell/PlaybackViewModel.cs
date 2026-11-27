@@ -207,7 +207,7 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
     public PlaybackState PlaybackState => (_output?.PlaybackState ?? PlaybackState.Stopped);
     public bool IsPlaying => PlaybackState == PlaybackState.Playing;
     public bool IsPaused => PlaybackState == PlaybackState.Paused;
-    public string PlayPauseLabel => IsPlaying ? "▐▐" : "▶";
+    public string PlayPauseLabel => IsPlaying ? "| |" : "▶";
 
     #endregion
 

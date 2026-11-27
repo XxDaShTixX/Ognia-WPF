@@ -20,6 +20,14 @@ public partial class MainWindow : Window
     public ApiClientService Api { get; }
     public IAppNavigator Navigator { get; }
 
+    private const double DefaultWindowWidth = 1200;
+    private const double DefaultWindowHeight = 800;
+    private const double WindowMinWidth = 900;
+    private const double WindowMinHeight = 600;
+
+    private double _normalWidth = DefaultWindowWidth;
+    private double _normalHeight = DefaultWindowHeight;
+
     public static readonly DependencyProperty DisplayTitleProperty =
         DependencyProperty.Register(
             nameof(DisplayTitle),
@@ -36,6 +44,11 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        MinWidth = WindowMinWidth;
+        MinHeight = WindowMinHeight;
+        Width = DefaultWindowWidth;
+        Height = DefaultWindowHeight;
+        SizeChanged += MainWindow_SizeChanged;
         DataContext = this;
         Current = this;
 
@@ -73,8 +86,11 @@ public partial class MainWindow : Window
     {
         var w = AppSettings.Instance.Window;
 
-        if (w.Width > 0) Width = w.Width;
-        if (w.Height > 0) Height = w.Height;
+        Width = w.Width >= WindowMinWidth ? w.Width : DefaultWindowWidth;
+        Height = w.Height >= WindowMinHeight ? w.Height : DefaultWindowHeight;
+
+        _normalWidth = Width;
+        _normalHeight = Height;
 
         if (w.State == WindowState.Maximized)
             WindowState = WindowState.Maximized;
@@ -84,9 +100,13 @@ public partial class MainWindow : Window
 
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
     {
-        var bounds = WindowState == WindowState.Normal
-            ? new Rect(Left, Top, Width, Height)
-            : RestoreBounds;
+        var bounds = _isMini
+            ? (_preMiniState == WindowState.Normal
+                ? new Rect(_preMiniLeft, _preMiniTop, _preMiniWidth, _preMiniHeight)
+                : RestoreBounds)
+            : WindowState == WindowState.Normal
+                ? new Rect(Left, Top, _normalWidth, _normalHeight)
+                : RestoreBounds;
 
         AppSettings.Instance.Window.Width = bounds.Width;
         AppSettings.Instance.Window.Height = bounds.Height;
@@ -263,11 +283,9 @@ public partial class MainWindow : Window
 
     #region Mini player
 
-    private const double MiniWidth = 420;
-    private const double MiniHeight = 175;
+    private const double MiniWidth = 450;
+    private const double MiniHeight = 200;
     private const double MiniMargin = 12;
-    private const double NormalMinWidth = 1200;
-    private const double NormalMinHeight = 800;
     private static readonly TimeSpan MiniFadeIn = TimeSpan.FromMilliseconds(150);
     private static readonly TimeSpan MiniFadeOut = TimeSpan.FromMilliseconds(400);
     private static readonly TimeSpan MiniFadeOutDelay = TimeSpan.FromMilliseconds(1500);
@@ -278,23 +296,36 @@ public partial class MainWindow : Window
     private double _preMiniWidth;
     private double _preMiniHeight;
     private bool _isMini;
+    private bool _isChangingWindowSize;
     private System.Windows.Threading.DispatcherTimer? _miniFadeTimer;
+
+    private void MainWindow_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (_isMini || _isChangingWindowSize || WindowState != WindowState.Normal)
+            return;
+
+        _normalWidth = ActualWidth;
+        _normalHeight = ActualHeight;
+    }
 
     private void EnterMiniMode()
     {
         if (_isMini) return;
         if (MainContent.Content is not ShellView shell) return;
+        if (shell.PlaybackBarDataContext is not PlaybackBarViewModel barVm) return;
 
         _preMiniState = WindowState;
-        _preMiniLeft = Left;
-        _preMiniTop = Top;
-        _preMiniWidth = Width;
-        _preMiniHeight = Height;
+        var normalBounds = WindowState == WindowState.Normal
+            ? new Rect(Left, Top, _normalWidth, _normalHeight)
+            : RestoreBounds;
+        _preMiniLeft = normalBounds.Left;
+        _preMiniTop = normalBounds.Top;
+        _preMiniWidth = normalBounds.Width;
+        _preMiniHeight = normalBounds.Height;
 
+        _isMini = true;
+        _isChangingWindowSize = true;
         WindowState = WindowState.Normal;
-
-        var barVm = shell.PlaybackBarDataContext as PlaybackBarViewModel;
-        if (barVm == null) return;
 
         // Resize and style the window BEFORE swapping content so the mini
         // view lays out against the final size on its first measure pass.
@@ -306,6 +337,7 @@ public partial class MainWindow : Window
         Top = wa.Bottom - MiniHeight - MiniMargin;
         Width = MiniWidth;
         Height = MiniHeight;
+        _isChangingWindowSize = false;
 
         Topmost = true;
         ShowInTaskbar = false;
@@ -336,8 +368,9 @@ public partial class MainWindow : Window
         ShowInTaskbar = true;
         ResizeMode = ResizeMode.CanResize;
 
-        MinWidth = NormalMinWidth;
-        MinHeight = NormalMinHeight;
+        _isChangingWindowSize = true;
+        MinWidth = WindowMinWidth;
+        MinHeight = WindowMinHeight;
 
         Width = _preMiniWidth;
         Height = _preMiniHeight;
@@ -349,6 +382,7 @@ public partial class MainWindow : Window
 
         Navigator.RestoreShellContent();
 
+        _isChangingWindowSize = false;
         _isMini = false;
     }
 

@@ -21,13 +21,11 @@
 
             <!-- Track Name -->
             <TextBlock Text="{Binding TrackName}"
-                       Style="{StaticResource PrimaryTextBlock}"
                        TextWrapping="Wrap"
                        TextAlignment="Center"/>
 
             <!-- Track Duration -->
             <TextBlock Text="{Binding TrackDurationLabel, StringFormat='Duration: {0}'}"
-                       Style="{StaticResource PrimaryTextBlock}"
                        HorizontalAlignment="Center"
                        Margin="0,4,0,0"/>
 
@@ -35,7 +33,7 @@
 
             <!-- Track Action Prompt -->
             <StackPanel Visibility="{Binding IsRenameOpen, Converter={StaticResource BoolToVisibility}}">
-                <TextBlock Text="New name" Style="{StaticResource PrimaryTextBlock}"/>
+                <TextBlock Text="New name"/>
                 <TextBox Text="{Binding RenameInput, UpdateSourceTrigger=PropertyChanged}"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,4,0,0">
                     <Button Content="✓"
@@ -88,29 +86,6 @@
                             ToolTip="Open file location"/>
                 </StackPanel>
 
-                <Separator/>
-
-                <!-- Move to playlist -->
-                <TextBlock Text="Move to playlist"
-                           Style="{StaticResource PrimaryTextBlock}"
-                           HorizontalAlignment="Center"
-                           Margin="0,8,0,2"/>
-                <ComboBox ItemsSource="{Binding MoveTargets}"
-                          SelectedItem="{Binding MoveTarget, Mode=TwoWay}"
-                          Width="180"
-                          HorizontalAlignment="Center">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding Name}"/>
-                        </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
-                <Button Content="Move"
-                        Command="{Binding MoveCommand}"
-                        Style="{StaticResource PrimaryButton}"
-                        HorizontalAlignment="Center"
-                        Width="120"
-                        Margin="0,4,0,0"/>
             </StackPanel>
         </StackPanel>
     </ScrollViewer>

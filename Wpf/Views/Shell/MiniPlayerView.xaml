@@ -37,8 +37,7 @@
                            TextTrimming="CharacterEllipsis"
                            VerticalAlignment="Center"
                            Margin="4,0,0,4"
-                           ClipToBounds="True"
-                           Style="{StaticResource PrimaryTextBlock}"/>
+                           ClipToBounds="True"/>
 
                 <!-- Seek row: position + slider + duration, full width -->
                 <Grid Grid.Row="1" VerticalAlignment="Center">
@@ -52,8 +51,7 @@
                                Text="{Binding PlaybackViewModel.PositionLabel}"
                                VerticalAlignment="Center"
                                Margin="0,0,6,0"
-                               FontSize="11"
-                               Style="{StaticResource PrimaryTextBlock}"/>
+                               FontSize="11"/>
 
                     <Slider Grid.Column="1"
                             Minimum="0"
@@ -68,9 +66,7 @@
                     <TextBlock Grid.Column="2"
                                Text="{Binding PlaybackViewModel.DurationLabel}"
                                VerticalAlignment="Center"
-                               Margin="6,0,0,0"
-                               FontSize="11"
-                               Style="{StaticResource PrimaryTextBlock}"/>
+                               Margin="6,0,0,0"/>
                 </Grid>
 
                 <!-- Transport row: buttons left, volume right -->

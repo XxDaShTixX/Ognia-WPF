@@ -3,8 +3,6 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:shell="clr-namespace:Ognia.Wpf.Views.Shell"
         Title="Ognia"
-        Width="1200" Height="800"
-        MinWidth="1200" MinHeight="800"
         ResizeMode="CanResize"
         WindowStartupLocation="CenterScreen"
         Background="Transparent"

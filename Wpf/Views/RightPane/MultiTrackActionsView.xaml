@@ -44,7 +44,6 @@
 
             <!-- Copy to Playlist -->
             <TextBlock Text="Copy to Playlist"
-                       Style="{StaticResource PrimaryTextBlock}"
                        HorizontalAlignment="Center"
                        Margin="0,0,0,10"/>
             <ComboBox ItemsSource="{Binding PlaylistTargets}"
@@ -67,7 +66,6 @@
 
             <!-- Move to Playlist -->
             <TextBlock Text="Move to Playlist"
-                       Style="{StaticResource PrimaryTextBlock}"
                        HorizontalAlignment="Center"
                        Margin="0,0,0,10"/>
             <ComboBox ItemsSource="{Binding PlaylistTargets}"

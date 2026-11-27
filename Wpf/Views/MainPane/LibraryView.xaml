@@ -67,7 +67,7 @@
                     Background="{DynamicResource SidebarBackgroundColor}"
                     Visibility="{Binding Session.IsCreatingPlaylist, Converter={StaticResource BoolToVisibility}}">
                 <StackPanel>
-                    <TextBlock Text="New playlist name" Style="{StaticResource PrimaryTextBlock}"/>
+                    <TextBlock Text="New playlist name"/>
                     <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
                         <TextBox Text="{Binding Session.NewPlaylistName, UpdateSourceTrigger=PropertyChanged}"
                                  Width="300"/>
@@ -118,7 +118,7 @@
                                                 </Border.Clip>
                                                 <Grid>
                                                     <Image Source="{Binding CachedCoverPath, Converter={StaticResource StringToImageSource}}"
-                                       Stretch="UniformToFill"/>
+                                                           Stretch="UniformToFill"/>
 
                                                     <Grid>
                                                         <Grid.Style>
@@ -143,10 +143,9 @@
                                                 </Grid>
                                             </Border>
                                             <TextBlock Text="{Binding Name}"
-                                   TextTrimming="CharacterEllipsis"
-                                   HorizontalAlignment="Center"
-                                   Margin="0,8,0,0"
-                                   Style="{StaticResource PrimaryTextBlock}"/>
+                                                       TextTrimming="CharacterEllipsis"
+                                                       HorizontalAlignment="Center"
+                                                       Margin="0,8,0,0"/>
                                         </StackPanel>
 
                                         <!-- Hover-only delete button -->
