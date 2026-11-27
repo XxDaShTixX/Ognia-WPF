@@ -1,14 +1,16 @@
 ﻿using Ognia.Wpf.Caching;
 using Ognia.Wpf.Library;
 using Ognia.Wpf.Models.Track;
+using Ognia.Wpf.Session;
 using Ognia.Wpf.TrackSources;
+using System.Collections.ObjectModel;
 
 namespace Ognia.Wpf.ViewModels;
 
 public class TrackRowViewModel : ViewModelBase
 {
     public TrackRowViewModel(
-        TrackResponse track, string playlistName,
+        TrackResponse track, string playlistName, AppSession session,
         Action<TrackRowViewModel> playRequested,
         Action<TrackRowViewModel> moreRequested,
         Action<TrackRowViewModel> renameRequested,
@@ -18,6 +20,7 @@ public class TrackRowViewModel : ViewModelBase
     {
         Track = track;
         _playlistName = playlistName;
+        _session = session;
         _playRequested = playRequested;
         _moreRequested = moreRequested;
 
@@ -27,6 +30,12 @@ public class TrackRowViewModel : ViewModelBase
         RemoveCommand = new RelayCommand(_ => removeRequested(this));
         DownloadCommand = new RelayCommand(_ => downloadRequested(this));
         RemoveDownloadCommand = new RelayCommand(_ => removeDownloadRequested(this));
+        OpenPlaylistPickerCommand = new RelayCommand(async _ => await OpenPlaylistPickerAsync());
+        TogglePlaylistCommand = new RelayCommand(async parameter =>
+        {
+            if (parameter is PlaylistMembershipViewModel membership)
+                await TogglePlaylistAsync(membership);
+        });
 
         _isDownloaded = LocalLibrary.FindLocalFile(playlistName, Name) != null;
 
@@ -39,6 +48,23 @@ public class TrackRowViewModel : ViewModelBase
     public RelayCommand RemoveCommand { get; }
     public RelayCommand DownloadCommand { get; }
     public RelayCommand RemoveDownloadCommand { get; }
+    public RelayCommand OpenPlaylistPickerCommand { get; }
+    public RelayCommand TogglePlaylistCommand { get; }
+
+    public ObservableCollection<PlaylistMembershipViewModel> ExistingPlaylists { get; } = new();
+    public ObservableCollection<PlaylistMembershipViewModel> OtherPlaylists { get; } = new();
+
+    public bool IsPlaylistPickerOpen
+    {
+        get => _isPlaylistPickerOpen;
+        set => SetProperty(ref _isPlaylistPickerOpen, value);
+    }
+
+    public bool IsLoadingPlaylists
+    {
+        get => _isLoadingPlaylists;
+        private set => SetProperty(ref _isLoadingPlaylists, value);
+    }
 
     public TrackResponse Track { get; }
     public string? LocalFilePath => _previewFilePath ?? LocalLibrary.FindLocalFile(PlaylistName, Name);
@@ -129,10 +155,14 @@ public class TrackRowViewModel : ViewModelBase
 
     private readonly Action<TrackRowViewModel> _playRequested;
     private readonly Action<TrackRowViewModel> _moreRequested;
+    private readonly AppSession _session;
 
     private bool _isDownloaded;
     private bool _isPlaying;
     private string? _thumbnailPath;
+    private bool _isPlaylistPickerOpen;
+    private bool _isLoadingPlaylists;
+    private Task? _loadMembershipTask;
 
     private async Task LoadThumbnailAsync()
     {
@@ -173,4 +203,110 @@ public class TrackRowViewModel : ViewModelBase
         _thumbnailPath = value;
         OnPropertyChanged(nameof(ThumbnailPath));
     }
+
+    private async Task OpenPlaylistPickerAsync()
+    {
+        await EnsureMembershipLoadedAsync();
+        IsPlaylistPickerOpen = true;
+    }
+
+    private async Task EnsureMembershipLoadedAsync()
+    {
+        _loadMembershipTask ??= LoadMembershipAsync();
+        await _loadMembershipTask;
+    }
+
+    private async Task LoadMembershipAsync()
+    {
+        IsLoadingPlaylists = true;
+        try
+        {
+            var memberships = await Task.WhenAll(_session.Playlists.Select(async playlist =>
+            {
+                var result = await _session.Repo.GetPlaylistDetailAsync(playlist.Id);
+                var track = result.Success
+                    ? result.Data?.Tracks.FirstOrDefault(IsSameTrack)
+                    : null;
+                return new PlaylistMembershipViewModel(playlist, track?.Id);
+            }));
+
+            ExistingPlaylists.Clear();
+            OtherPlaylists.Clear();
+            foreach (var membership in memberships.OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase))
+                AddSorted(membership.IsInPlaylist ? ExistingPlaylists : OtherPlaylists, membership);
+        }
+        finally
+        {
+            IsLoadingPlaylists = false;
+        }
+    }
+
+    private async Task TogglePlaylistAsync(PlaylistMembershipViewModel membership)
+    {
+        if (membership.IsBusy)
+        {
+            membership.NotifyStateChanged();
+            return;
+        }
+
+        membership.IsBusy = true;
+        try
+        {
+            if (membership.IsInPlaylist)
+            {
+                if (!membership.TrackId.HasValue) return;
+                var result = await _session.Repo.RemoveTrackAsync(
+                    membership.Playlist.Id, membership.TrackId.Value);
+                if (!result.Success)
+                {
+                    Services.NotificationService.Instance.Error(result.Error ?? "Failed to remove track.");
+                    membership.NotifyStateChanged();
+                    return;
+                }
+
+                ExistingPlaylists.Remove(membership);
+                membership.SetAbsent();
+                AddSorted(OtherPlaylists, membership);
+                Services.NotificationService.Instance.Info(
+                    $"Removed '{Name}' from '{membership.Name}'.");
+            }
+            else
+            {
+                var result = await _session.Repo.AddTracksAsync(membership.Playlist.Id, SourceUrl ?? string.Empty);
+                if (!result.Success)
+                {
+                    Services.NotificationService.Instance.Error(result.Error ?? "Failed to add track.");
+                    membership.NotifyStateChanged();
+                    return;
+                }
+
+                var detail = await _session.Repo.GetPlaylistDetailAsync(membership.Playlist.Id);
+                OtherPlaylists.Remove(membership);
+                membership.SetPresent(detail.Data?.Tracks.FirstOrDefault(IsSameTrack)?.Id);
+                AddSorted(ExistingPlaylists, membership);
+                Services.NotificationService.Instance.Info(
+                    $"Added '{Name}' to '{membership.Name}'.");
+            }
+        }
+        finally
+        {
+            membership.IsBusy = false;
+        }
+    }
+
+    private static void AddSorted(
+        ObservableCollection<PlaylistMembershipViewModel> playlists,
+        PlaylistMembershipViewModel membership)
+    {
+        var index = 0;
+        while (index < playlists.Count
+               && StringComparer.OrdinalIgnoreCase.Compare(playlists[index].Name, membership.Name) <= 0)
+            index++;
+
+        playlists.Insert(index, membership);
+    }
+
+    private bool IsSameTrack(TrackResponse track) =>
+        string.Equals(track.SourceName, Track.SourceName, StringComparison.OrdinalIgnoreCase)
+        && string.Equals(track.SourceId, Track.SourceId, StringComparison.OrdinalIgnoreCase);
 }

@@ -8,8 +8,8 @@
             ClipToBounds="True">
         <Border.Background>
             <LinearGradientBrush StartPoint="0,1" EndPoint="0,0">
-                <GradientStop Color="{DynamicResource SidebarBackgroundColor.Color}" Offset="0.5"/>
-                <GradientStop Color="{DynamicResource MainPaneFadeColor.Color}" Offset="1"/>
+                <GradientStop Color="{DynamicResource SidebarBackgroundColor.Color}" Offset="0"/>
+                <GradientStop Color="{DynamicResource FadeMainPaneColor.Color}" Offset="1"/>
             </LinearGradientBrush>
         </Border.Background>
         <ContentControl x:Name="HostContent"/>

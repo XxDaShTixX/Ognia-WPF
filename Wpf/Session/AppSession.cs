@@ -271,7 +271,7 @@ public sealed class AppSession : ViewModelBase
         if (track == null) return;
 
         var row = new TrackRowViewModel(
-            track, playlist.Name,
+            track, playlist.Name, this,
             OnRowPlayRequested,
             OnRowMoreRequested,
             OnRowRenameRequested,
@@ -317,7 +317,7 @@ public sealed class AppSession : ViewModelBase
         foreach (var t in result.Data.Tracks)
         {
             var row = new TrackRowViewModel(
-                t, SelectedPlaylist.Name,
+                t, SelectedPlaylist.Name, this,
                 OnRowPlayRequested,
                 OnRowMoreRequested,
                 OnRowRenameRequested,

@@ -67,7 +67,7 @@
                     Background="{DynamicResource SidebarBackgroundColor}"
                     Visibility="{Binding Session.IsCreatingPlaylist, Converter={StaticResource BoolToVisibility}}">
                 <StackPanel>
-                    <TextBlock Text="New playlist name" Style="{StaticResource PrimaryTextBlock}"/>
+                    <TextBlock Text="New playlist name"/>
                     <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
                         <TextBox Text="{Binding Session.NewPlaylistName, UpdateSourceTrigger=PropertyChanged}"
                                  Width="300"/>
@@ -112,13 +112,13 @@
                                         <StackPanel VerticalAlignment="Center">
                                             <Border Width="120" Height="120" HorizontalAlignment="Center"
                                 CornerRadius="8" ClipToBounds="True"
-                                Background="{DynamicResource TextboxBackgroundColor}">
+                                Background="{DynamicResource TextBoxBackgroundColor}">
                                                 <Border.Clip>
                                                     <RectangleGeometry RadiusX="8" RadiusY="8" Rect="0,0,120,120"/>
                                                 </Border.Clip>
                                                 <Grid>
                                                     <Image Source="{Binding CachedCoverPath, Converter={StaticResource StringToImageSource}}"
-                                       Stretch="UniformToFill"/>
+                                                           Stretch="UniformToFill"/>
 
                                                     <Grid>
                                                         <Grid.Style>
@@ -143,10 +143,9 @@
                                                 </Grid>
                                             </Border>
                                             <TextBlock Text="{Binding Name}"
-                                   TextTrimming="CharacterEllipsis"
-                                   HorizontalAlignment="Center"
-                                   Margin="0,8,0,0"
-                                   Style="{StaticResource PrimaryTextBlock}"/>
+                                                       TextTrimming="CharacterEllipsis"
+                                                       HorizontalAlignment="Center"
+                                                       Margin="0,8,0,0"/>
                                         </StackPanel>
 
                                         <!-- Hover-only delete button -->
@@ -165,7 +164,7 @@
                                                 <Style TargetType="Button">
                                                     <Setter Property="Visibility" Value="Collapsed"/>
                                                     <Setter Property="Background" Value="#CC000000"/>
-                                                    <Setter Property="Foreground" Value="{DynamicResource ErrorColor}"/>
+                                                    <Setter Property="Foreground" Value="{DynamicResource ErrorTextColor}"/>
                                                     <Setter Property="Template">
                                                         <Setter.Value>
                                                             <ControlTemplate TargetType="Button">
@@ -184,7 +183,7 @@
                                                             <Setter Property="Visibility" Value="Visible"/>
                                                         </DataTrigger>
                                                         <Trigger Property="IsMouseOver" Value="True">
-                                                            <Setter Property="Background" Value="{DynamicResource ErrorColor}"/>
+                                                            <Setter Property="Background" Value="{DynamicResource ErrorBackgroundColor}"/>
                                                             <Setter Property="Foreground" Value="White"/>
                                                         </Trigger>
                                                     </Style.Triggers>

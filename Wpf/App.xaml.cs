@@ -26,8 +26,8 @@ public partial class App : Application
 
             new MainWindow().Show();
 
-            if (AppSettings.Instance.Update.AutoUpdateEnabled)
-                _ = UpdateService.Instance.CheckAsync(downloadIfFound: true);
+            _ = UpdateService.Instance.CheckAsync(
+                downloadIfFound: AppSettings.Instance.Update.AutoUpdateEnabled);
         }
         catch (Exception ex)
         {

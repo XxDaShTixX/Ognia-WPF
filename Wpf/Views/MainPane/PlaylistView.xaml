@@ -15,7 +15,7 @@
 
                     <Border Grid.Column="0" Width="120" Height="120" CornerRadius="8"
                             ClipToBounds="True"
-                            Background="{DynamicResource TextboxBackgroundColor}">
+                            Background="{DynamicResource TextBoxBackgroundColor}">
                         <Image Source="{Binding Session.SelectedPlaylist.CachedCoverPath, Converter={StaticResource StringToImageSource}}"
                                Stretch="UniformToFill"
                                HorizontalAlignment="Center"
@@ -33,16 +33,84 @@
                         </Grid.RowDefinitions>
 
                         <!-- Playlist Title -->
-                        <TextBlock Grid.Row="0"
-                                   Text="{Binding Session.SelectedPlaylist.Name}"
-                                   Style="{StaticResource TitleText}"
-                                   HorizontalAlignment="Left"
-                                   Margin="0,0,0,4"/>
+                        <Grid Grid.Row="0" Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0"
+                                       Text="{Binding Session.SelectedPlaylist.Name}"
+                                       HorizontalAlignment="Left">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontSize" Value="18"/>
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource LightTextColor}"/>
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsRenameOpen}" Value="True">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+
+                            <StackPanel Grid.Column="0"
+                                        Orientation="Horizontal"
+                                        VerticalAlignment="Center"
+                                        Visibility="{Binding IsRenameOpen, Converter={StaticResource BoolToVisibility}}">
+                                <TextBox Text="{Binding RenameInput, UpdateSourceTrigger=PropertyChanged}"
+                                         Width="300"
+                                         VerticalAlignment="Center"/>
+                                <Button Content="✓"
+                                        Command="{Binding ConfirmRenameCommand}"
+                                        Style="{StaticResource IconButton}"
+                                        ToolTip="Save name"/>
+                                <Button Content="✕"
+                                        Command="{Binding CancelRenameCommand}"
+                                        Style="{StaticResource IconButton}"
+                                        ToolTip="Cancel rename"/>
+                            </StackPanel>
+
+                            <Button Grid.Column="1"
+                                    Content="✎"
+                                    ToolTip="Rename playlist"
+                                    Width="30"
+                                    Height="30"
+                                    Margin="5,0,0,0"
+                                    Background="Transparent"
+                                    BorderBrush="Transparent"
+                                    BorderThickness="0"
+                                    Command="{Binding RenamePlaylistCommand}">
+                                <Button.Style>
+                                    <Style TargetType="Button"
+                                           BasedOn="{StaticResource IconButton}">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Setter Property="BorderBrush" Value="Transparent"/>
+                                        <Setter Property="BorderThickness" Value="0"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsRenameOpen}" Value="True">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="Transparent"/>
+                                                <Setter Property="BorderBrush" Value="Transparent"/>
+                                            </Trigger>
+                                            <Trigger Property="IsPressed" Value="True">
+                                                <Setter Property="Background" Value="Transparent"/>
+                                                <Setter Property="BorderBrush" Value="Transparent"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </Grid>
 
                         <!-- Playlist Track Count -->
                         <TextBlock Grid.Row="1"
                                    Text="{Binding Session.SelectedPlaylist.PlaylistTracksCount, StringFormat='{}{0} tracks'}"
-                                   Style="{StaticResource PrimaryTextBlock}"
                                    Foreground="{DynamicResource DisabledTextColor}"
                                    HorizontalAlignment="Left"
                                    Margin="0,0,0,4"/>
@@ -113,9 +181,9 @@
                                                 <DataTrigger Binding="{Binding Session.PlaylistFilterOpen}"
                                                              Value="True">
                                                     <Setter Property="Background"
-                                                            Value="{DynamicResource ButtonPressedColor}"/>
+                                                            Value="{DynamicResource PressedButtonBackgroundColor}"/>
                                                     <Setter Property="Foreground"
-                                                            Value="{DynamicResource LightTextColor}"/>
+                                                            Value="{DynamicResource HoverTextColor}"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
@@ -126,12 +194,6 @@
 
                             <!-- Right Buttons -->
                             <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
-
-                                <!-- Rename Playlist -->
-                                <Button Content="✎"
-                                        Command="{Binding RenamePlaylistCommand}"
-                                        Style="{StaticResource IconButton}"
-                                        ToolTip="Rename playlist"/>
 
                                 <!-- Add Track to Playlist -->
                                 <Button Content="➕"
@@ -149,37 +211,11 @@
                             
                         </Grid>
 
-                        <!-- Rename Prompt -->
-                        <StackPanel Grid.Row="3"
-                                    Visibility="{Binding IsRenameOpen, Converter={StaticResource BoolToVisibility}}">
-
-                            <!-- Rename Textbox -->
-                            <TextBlock Text="New name" Style="{StaticResource PrimaryTextBlock}"/>
-                            
-                            <StackPanel Orientation="Horizontal">
-
-                                <!-- Rename Textbox -->
-                                <TextBox Text="{Binding RenameInput, UpdateSourceTrigger=PropertyChanged}"
-                                         Width="300"/>
-
-                                <!-- Confirm -->
-                                <Button Content="✓" 
-                                        Command="{Binding ConfirmRenameCommand}"
-                                        Style="{StaticResource IconButton}"/>
-
-                                <!-- Cancel -->
-                                <Button Content="✕" 
-                                        Command="{Binding CancelRenameCommand}"
-                                        Style="{StaticResource IconButton}"/>
-                            </StackPanel>
-                            
-                        </StackPanel>
-
                         <!-- Add Track Prompt -->
-                        <StackPanel Grid.Row="4" Margin="0,4,0,0"
+                        <StackPanel Grid.Row="4" Margin="0,5,0,0"
                                     Visibility="{Binding IsAddTrackOpen, Converter={StaticResource BoolToVisibility}}">
                             
-                            <TextBlock Text="Track or playlist URL" Style="{StaticResource PrimaryTextBlock}"/>
+                            <TextBlock Text="Track or playlist URL"/>
                             
                             <StackPanel Orientation="Horizontal">
 
@@ -202,7 +238,7 @@
                         </StackPanel>
 
                         <!-- Filter Playlist Prompt -->
-                        <StackPanel Grid.Row="5" Margin="0,4,0,0"
+                        <StackPanel Grid.Row="5" Margin="0,5,0,0"
                                     Orientation="Horizontal"
                                     Visibility="{Binding Session.PlaylistFilterOpen, Converter={StaticResource BoolToVisibility}}">
 
@@ -237,23 +273,129 @@
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <StackPanel>
-                            <Grid Margin="0,0,0,5"
+                            <Grid Height="45"
                                   HorizontalAlignment="Stretch">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="15"/>
-                                    <ColumnDefinition Width="20"/>
+                                    <ColumnDefinition Width="25"/>
                                     <ColumnDefinition Width="50"/>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
+
+                                <!-- Playlist actions -->
+                                <Button x:Name="PlaylistButton"
+                                        Grid.Column="6"
+                                        Width="30"
+                                        Content="ooo"
+                                        Background="Transparent"
+                                        FontWeight="Light"
+                                        BorderThickness="0"
+                                        ToolTip="Add or remove this track from playlists"
+                                        Command="{Binding OpenPlaylistPickerCommand}"
+                                        Style="{StaticResource IconButton}"/>
+
+                                <Popup PlacementTarget="{Binding ElementName=PlaylistButton}"
+                                       Placement="Bottom"
+                                       StaysOpen="False"
+                                       AllowsTransparency="True"
+                                       IsOpen="{Binding IsPlaylistPickerOpen, Mode=TwoWay}">
+                                    <Border Background="{DynamicResource SidebarBackgroundColor}"
+                                            BorderBrush="{DynamicResource ButtonBorderBrushColor}"
+                                            BorderThickness="1"
+                                            CornerRadius="4"
+                                            Padding="8"
+                                            Width="240">
+                                        <StackPanel>
+                                            <TextBlock Text="Playlists"
+                                                       FontWeight="Bold"
+                                                       HorizontalAlignment="Center"
+                                                       Margin="0,0,0,6"/>
+                                            <Separator Margin="0,0,0,6"/>
+
+                                            <TextBlock Text="Remove From"
+                                                       FontWeight="Bold"
+                                                       Margin="0,0,0,4"/>
+                                            <ItemsControl ItemsSource="{Binding ExistingPlaylists}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Grid Margin="0,1">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBlock Grid.Column="0"
+                                                                       Text="{Binding Name}"
+                                                                       VerticalAlignment="Center"/>
+                                                            <CheckBox Grid.Column="1"
+                                                                      IsChecked="{Binding IsInPlaylist, Mode=OneWay}"
+                                                                      Command="{Binding DataContext.TogglePlaylistCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                                      CommandParameter="{Binding}"
+                                                                      VerticalAlignment="Center"
+                                                                      Margin="8,0,0,0"/>
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+
+                                            <Separator Margin="0,6"/>
+
+                                            <TextBlock Text="Add to"
+                                                       FontWeight="Bold"
+                                                       Margin="0,0,0,4"/>
+                                            <ItemsControl ItemsSource="{Binding OtherPlaylists}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Grid Margin="0,1">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBlock Grid.Column="0"
+                                                                       Text="{Binding Name}"
+                                                                       VerticalAlignment="Center"/>
+                                                            <CheckBox Grid.Column="1"
+                                                                      IsChecked="{Binding IsInPlaylist, Mode=OneWay}"
+                                                                      Command="{Binding DataContext.TogglePlaylistCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                                      CommandParameter="{Binding}"
+                                                                      VerticalAlignment="Center"
+                                                                      Margin="8,0,0,0"/>
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+
+                                            <TextBlock Text="Loading..."
+                                                       Foreground="{DynamicResource DisabledTextColor}"
+                                                       Visibility="{Binding IsLoadingPlaylists, Converter={StaticResource BoolToVisibility}}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Popup>
 
                                 <!-- Checkbox -->
                                 <CheckBox Grid.Column="0"
                                           IsChecked="{Binding IsSelected, Mode=TwoWay}"
                                           VerticalAlignment="Center"
-                                          Margin="5,0,5,0"
-                                          ToolTip="Select track"/>
+                                          Margin="0,0,5,0"
+                                          ToolTip="Select track">
+                                    <CheckBox.Style>
+                                        <Style TargetType="CheckBox"
+                                               BasedOn="{StaticResource {x:Type CheckBox}}">
+                                            <Setter Property="Visibility" Value="Hidden"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
+                                                             Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                                <Trigger Property="IsChecked" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </CheckBox.Style>
+                                </CheckBox>
 
                                 <!-- Display Order -->
                                 <TextBlock Grid.Column="1"
@@ -264,13 +406,13 @@
                                 <!-- Download Indicator -->
                                 <TextBlock Grid.Column="2" 
                                            Text="{Binding DownloadedLabel}" 
-                                           Foreground="{DynamicResource SuccessColor}" 
+                                           Foreground="{DynamicResource SuccessTextColor}" 
+                                           Margin="5,0,0,0"
                                            VerticalAlignment="Center"/>
 
                                 <!-- Track Cover Image -->
                                 <Border Grid.Column="3" 
                                         Width="40" Height="40" 
-                                        Margin="0,5,0,0"
                                         VerticalAlignment="Center" 
                                         HorizontalAlignment="Left"
                                         ClipToBounds="True">
@@ -302,16 +444,22 @@
                                 </Border>
 
                                 <!-- Track Name -->
-                                <TextBlock Grid.Column="4" Text="{Binding Name}"
+                                <TextBlock Grid.Column="4" 
                                            TextTrimming="CharacterEllipsis"
-                                           VerticalAlignment="Center">
+                                           VerticalAlignment="Center"
+                                           Text="{Binding Name}">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{DynamicResource LightTextColor}"/>
                                             <Setter Property="FontWeight" Value="Normal"/>
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding IsPlaying}" Value="True">
-                                                    <Setter Property="Foreground" Value="{DynamicResource LightTextColor}"/>
+                                                    <Setter Property="Foreground" Value="{DynamicResource AlternateTextColor}"/>
                                                     <Setter Property="FontWeight" Value="Bold"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
+                                                             Value="True">
+                                                    <Setter Property="Foreground" Value="{DynamicResource HoverTextColor}"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
@@ -329,7 +477,7 @@
                             <Rectangle 
                                 Height="1" 
                                 Opacity="0.25"
-                                Fill="{DynamicResource SeparatorColor}"/>
+                                Fill="{DynamicResource SeparatorBackgroundColor}"/>
                             
                         </StackPanel>
                     </DataTemplate>

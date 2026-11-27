@@ -23,7 +23,7 @@ public class AppSettings
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public AppMode? Mode { get; set; }
 
-    /// <summary>Currently active theme.Defaults to Default.json.</summary>
+    /// <summary>Currently active theme filename. Defaults to the bundled Default.json theme.</summary>
     public string ActiveTheme { get; set; } = "Default.json";
 
     public UpdateSettings Update { get; set; } = new();

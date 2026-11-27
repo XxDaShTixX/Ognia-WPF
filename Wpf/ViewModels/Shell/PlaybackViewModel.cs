@@ -11,15 +11,10 @@ namespace Ognia.Wpf.ViewModels.Shell;
 
 public class PlaybackViewModel : ViewModelBase, IDisposable
 {
-    /// <summary>
-    /// Shared-mode WASAPI buffer. 200 ms is generous enough to survive CPU/disk
-    /// pressure without a dropout, tight enough that seek feels instant.
-    /// </summary>
     private const int WasapiLatencyMs = 500;
 
     private IWavePlayer? _output;
     private AudioFileReader? _reader;
-    private MemoryStream? _readerStream;
     private readonly DispatcherTimer _positionTimer;
     private readonly Random _random = new();
 
@@ -38,10 +33,6 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
 
     public PlaybackViewModel()
     {
-        // _output is created lazily by StartOutput() on each track start.
-        // NAudio's WasapiOut is single-use per Init, and we deliberately
-        // recreate it on a TIME_CRITICAL thread for each track.
-
         _positionTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _positionTimer.Tick += OnTimerTick;
         _positionTimer.Start();
@@ -60,12 +51,6 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
         ToggleShuffleCommand = new RelayCommand(_ => IsShuffleOn = !IsShuffleOn);
     }
 
-    /// <summary>
-    /// Builds and initializes a <see cref="WasapiOut"/> on a dedicated
-    /// TIME_CRITICAL thread so the audio pull loop is not preempted by
-    /// CPU-heavy background work (shader compiles, video encodes, etc).
-    /// Falls back to WaveOutEvent on any failure — degraded but audible.
-    /// </summary>
     private async Task<IWavePlayer?> StartOutputAsync(AudioFileReader reader)
     {
         StopOutput();
@@ -124,25 +109,6 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
         {
             _isTearingDownOutput = false;
         }
-    }
-
-    [System.Runtime.InteropServices.DllImport("kernel32.dll")]
-    private static extern IntPtr GetCurrentThread();
-
-    [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
-    private static extern bool SetThreadPriority(IntPtr hThread, int nPriority);
-
-    private const int THREAD_PRIORITY_TIME_CRITICAL = 15;
-
-    /// <summary>
-    /// Promotes the calling thread to THREAD_PRIORITY_TIME_CRITICAL, above
-    /// THREAD_PRIORITY_HIGHEST. .NET does not expose this level; it's what
-    /// audio engines use to guarantee the pull loop is not preempted.
-    /// </summary>
-    private static void PromoteCurrentThreadToTimeCritical()
-    {
-        try { SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL); }
-        catch { }
     }
 
     #region Owner-supplied state
@@ -207,7 +173,7 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
     public PlaybackState PlaybackState => (_output?.PlaybackState ?? PlaybackState.Stopped);
     public bool IsPlaying => PlaybackState == PlaybackState.Playing;
     public bool IsPaused => PlaybackState == PlaybackState.Paused;
-    public string PlayPauseLabel => IsPlaying ? "▐▐" : "▶";
+    public string PlayPauseLabel => IsPlaying ? "| |" : "▶";
 
     #endregion
 
@@ -302,27 +268,18 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
         }
     }
 
-    /// <summary>
-    /// Loads the entire track into RAM so playback never touches disk. Shader
-    /// compiles, big copies, and indexers can saturate the disk queue for
-    /// hundreds of milliseconds; a synchronous file read inside the WASAPI
-    /// pull thread is exactly what turns that into an audible glitch.
-    /// </summary>
     private AudioFileReader CreateReader(string path)
     {
-        // AudioFileReader takes ownership of the stream and disposes it.
-        // Don't keep a field reference we'd need to dispose separately.
         var bytes = File.ReadAllBytes(path);
-        _readerStream = new MemoryStream(bytes, writable: false);
+        var stream = new MemoryStream(bytes, writable: false);
 
         try
         {
-            return new AudioFileReader(_readerStream);
+            return new AudioFileReader(stream);
         }
         catch
         {
-            _readerStream.Dispose();
-            _readerStream = null;
+            stream.Dispose();
             throw;
         }
     }
@@ -331,9 +288,6 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
     {
         try { _reader?.Dispose(); } catch { }
         _reader = null;
-
-        // AudioFileReader.Dispose already disposes the stream it was given.
-        _readerStream = null;
     }
 
     private bool _isMuted;
@@ -506,13 +460,6 @@ public class PlaybackViewModel : ViewModelBase, IDisposable
         await _outputGate.WaitAsync();
         try
         {
-            // A newer start queued behind us; this one is stale, bail.
-            if (_isStarting == false && !_disposed)
-            {
-                // (guard is advisory — the authoritative check is the
-                // reader identity check inside StartOutputAsync)
-            }
-
             DisposeReader();
             _reader = CreateReader(path);
 

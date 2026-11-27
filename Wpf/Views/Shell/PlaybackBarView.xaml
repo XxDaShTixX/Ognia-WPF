@@ -14,7 +14,7 @@
         <!-- Left: thumbnail spanning full height -->
         <Border Grid.Column="0" Width="100"
                 Style="{StaticResource HoverTile}"
-                Background="{DynamicResource TextboxBackgroundColor}"
+                Background="{DynamicResource TextBoxBackgroundColor}"
                 CornerRadius="6" Margin="0,0,10,0"
                 VerticalAlignment="Stretch"
                 Cursor="Hand"
@@ -39,47 +39,78 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Playback buttons (center) -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal"
-                        HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <Button Content="⏮" Command="{Binding PlaybackViewModel.PreviousCommand}"
-                        Style="{StaticResource IconButton}" ToolTip="Play previous track."/>
-                    <Button Content="{Binding PlaybackViewModel.PlayPauseLabel}"
-                        Command="{Binding PlaybackViewModel.PlayPauseCommand}"
-                        Style="{StaticResource IconButton}" Height="50" Width="50"
-                        ToolTip="Play/Pause"/>
-                    <Button Content="⏹" Command="{Binding PlaybackViewModel.StopCommand}"
-                        Style="{StaticResource IconButton}" Height="50" Width="50"
-                        ToolTip="Stop track."/>
-                    <Button Content="⏭" Command="{Binding PlaybackViewModel.NextCommand}"
-                        Style="{StaticResource IconButton}" ToolTip="Play next track."/>
-                    <Button Content="{Binding PlaybackViewModel.RepeatLabel}"
-                        Command="{Binding PlaybackViewModel.CycleRepeatCommand}"
-                        Style="{StaticResource IconButton}" ToolTip="Repeat All/Once/Off."/>
-                    <Button Content="{Binding PlaybackViewModel.ShuffleLabel}"
-                        Command="{Binding PlaybackViewModel.ToggleShuffleCommand}"
-                        Style="{StaticResource IconButton}" ToolTip="Shuffle on/off."/>
+                <StackPanel Grid.Column="1" 
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Center" 
+                            VerticalAlignment="Center">
+
+                    <Button Command="{Binding PlaybackViewModel.PreviousCommand}"
+                            Style="{StaticResource IconButton}" 
+                            ToolTip="Play previous track.">
+                        <TextBlock Text="◀◀"/>
+                    </Button>
+
+                    <Button Command="{Binding PlaybackViewModel.PlayPauseCommand}"
+                            Style="{StaticResource IconButton}"
+                            ToolTip="Play/Pause">
+                        <TextBlock Text="{Binding PlaybackViewModel.PlayPauseLabel}"
+                                   FontSize="15"
+                                   Padding="0,0,0,3"/>
+                    </Button>
+
+                    <Button Command="{Binding PlaybackViewModel.StopCommand}"
+                            Style="{StaticResource IconButton}"
+                            ToolTip="Stop track.">
+                        <TextBlock Text="■" FontSize="15"/>
+                    </Button>
+
+                    <Button Command="{Binding PlaybackViewModel.NextCommand}"
+                            Style="{StaticResource IconButton}" 
+                            ToolTip="Play next track.">
+                        <TextBlock Text="▶▶"/>
+                    </Button>
+
+                    <Button Command="{Binding PlaybackViewModel.CycleRepeatCommand}"
+                            Style="{StaticResource IconButton}" 
+                            ToolTip="Repeat All/One/OFF.">
+                        <TextBlock FontSize="20"
+                                   Text="{Binding PlaybackViewModel.RepeatLabel}"/>
+                    </Button>
+
+                    <Button Command="{Binding PlaybackViewModel.ToggleShuffleCommand}"
+                            Style="{StaticResource IconButton}" 
+                            ToolTip="Shuffle ON/OFF.">
+                        <TextBlock FontSize="20"
+                                   Text="{Binding PlaybackViewModel.ShuffleLabel}"/>
+                    </Button>
+
                 </StackPanel>
 
                 <!-- Volume (right) -->
-                <StackPanel Grid.Column="2" Orientation="Horizontal"
-                        HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Button Content="{Binding PlaybackViewModel.VolumeIcon}"
-                        Command="{Binding PlaybackViewModel.ToggleMuteCommand}"
-                        Style="{StaticResource IconButton}" ToolTip="Mute/Unmute volume."/>
+                <StackPanel Grid.Column="2" 
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Right" 
+                            VerticalAlignment="Center">
+
+                    <Button Command="{Binding PlaybackViewModel.ToggleMuteCommand}"
+                            Style="{StaticResource IconButton}" ToolTip="Mute/Unmute volume.">
+                        <TextBlock FontSize="15"
+                                   Text="{Binding PlaybackViewModel.VolumeIcon}"/>
+                    </Button>
+
                     <Slider Width="150" Minimum="0" Maximum="1"
-                        Value="{Binding PlaybackViewModel.Volume, Mode=TwoWay}"
-                        VerticalAlignment="Center"
-                        IsMoveToPointEnabled="True"
-                        ToolTip="Adjust volume."/>
+                            Value="{Binding PlaybackViewModel.Volume, Mode=TwoWay}"
+                            VerticalAlignment="Center"
+                            IsMoveToPointEnabled="True"
+                            ToolTip="Adjust volume."/>
                 </StackPanel>
             </Grid>
 
             <!-- Now Playing -->
             <TextBlock DockPanel.Dock="Bottom"
-                   Text="{Binding PlaybackViewModel.NowPlaying, StringFormat='Now playing: {0}'}"
-                   FontWeight="SemiBold"
-                   TextTrimming="CharacterEllipsis"
-                   Style="{StaticResource PrimaryTextBlock}"/>
+                       FontWeight="SemiBold"
+                       TextTrimming="CharacterEllipsis"
+                       Text="{Binding PlaybackViewModel.NowPlaying, StringFormat='Now playing: {0}'}"/>
 
             <!-- Seek slider -->
             <Grid DockPanel.Dock="Bottom" Margin="0,10,0,0">
@@ -89,9 +120,10 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <TextBlock Grid.Column="0" Text="{Binding PlaybackViewModel.PositionLabel}"
-                       VerticalAlignment="Center" Width="50"
-                       Style="{StaticResource PrimaryTextBlock}"/>
+                <TextBlock Grid.Column="0" 
+                           Width="50"
+                           VerticalAlignment="Center" 
+                           Text="{Binding PlaybackViewModel.PositionLabel}"/>
 
                 <Slider Grid.Column="1"
                     Minimum="0"
@@ -102,9 +134,10 @@
                     Thumb.DragStarted="Slider_DragStarted"
                     Thumb.DragCompleted="Slider_DragCompleted"/>
 
-                <TextBlock Grid.Column="2" Text="{Binding PlaybackViewModel.DurationLabel}"
-                       VerticalAlignment="Center" Margin="10,0,0,0"
-                       Style="{StaticResource PrimaryTextBlock}"/>
+                <TextBlock Grid.Column="2" 
+                           VerticalAlignment="Center" 
+                           Margin="10,0,0,0"
+                           Text="{Binding PlaybackViewModel.DurationLabel}"/>
             </Grid>
         </DockPanel>
     </Grid>

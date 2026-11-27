@@ -26,8 +26,7 @@
                 <!-- Results count per page-->
                 <TextBlock Text="Results"
                            VerticalAlignment="Center"
-                           Margin="15,0,05,0"
-                           Style="{StaticResource PrimaryTextBlock}"/>
+                           Margin="15,0,05,0"/>
                 <ComboBox Width="80"
                           VerticalAlignment="Center"
                           ItemsSource="{Binding PageSizeOptions}"
@@ -38,8 +37,7 @@
             <TextBlock DockPanel.Dock="Top"
                        Text="{Binding Status}"
                        Margin="0,0,0,8"
-                       Foreground="{DynamicResource DisabledTextColor}"
-                       Style="{StaticResource PrimaryTextBlock}"/>
+                       Foreground="{DynamicResource DisabledTextColor}"/>
 
             <!-- Bottom bar: declare BEFORE the ScrollViewer -->
             <StackPanel DockPanel.Dock="Bottom"
@@ -49,14 +47,12 @@
 
                 <!-- Previous Button -->
                 <Button Content="◀"
-                        Command="{Binding PrevPageCommand}"
                         Style="{StaticResource IconButton}"/>
 
                 <!-- Page Label -->
                 <TextBlock Text="{Binding PageLabel}"
                            VerticalAlignment="Center"
-                           Margin="12,0"
-                           Style="{StaticResource PrimaryTextBlock}"/>
+                           Margin="12,0"/>
 
                 <!-- Next Button -->
                 <Button Content="▶"
@@ -79,7 +75,7 @@
                 <ListBox.ItemTemplate>
                         <DataTemplate>
                             <StackPanel>
-                                <Grid Margin="0,0,0,5"
+                                <Grid Height="45"
                                       HorizontalAlignment="Stretch">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
@@ -92,7 +88,7 @@
                                             Width="40" Height="40"
                                             CornerRadius="4"
                                             ClipToBounds="True"
-                                            Background="{DynamicResource TextboxBackgroundColor}"
+                                            Background="{DynamicResource TextBoxBackgroundColor}"
                                             Margin="5,5,10,0"
                                             Cursor="Hand">
                                         <Grid>
@@ -129,12 +125,16 @@
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                         <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis">
                                             <TextBlock.Style>
-                                                <Style TargetType="TextBlock" BasedOn="{StaticResource PrimaryTextBlock}">
-                                                    <Setter Property="Foreground" Value="{DynamicResource DisabledTextColor}"/>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{DynamicResource LightTextColor}"/>
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding IsPlaying}" Value="True">
-                                                            <Setter Property="Foreground" Value="{DynamicResource LightTextColor}"/>
+                                                            <Setter Property="Foreground" Value="{DynamicResource AlternateTextColor}"/>
                                                             <Setter Property="FontWeight" Value="Bold"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
+                                                                     Value="True">
+                                                            <Setter Property="Foreground" Value="{DynamicResource HoverTextColor}"/>
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
@@ -148,12 +148,14 @@
                                     <!-- Track Add/Remove from Playlist -->
                                     <Button x:Name="AddButton"
                                             Grid.Column="2"
-                                            Content="{Binding PlaylistButtonGlyph}"
                                             FontSize="20"
-                                            Command="{Binding OpenPlaylistPickerCommand}"
-                                            Style="{StaticResource IconButton}"
                                             Height="30" Width="30"
-                                            ToolTip="Add or remove from playlists"/>
+                                            ToolTip="Add or remove from playlists"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Content="{Binding PlaylistButtonGlyph}"
+                                            Command="{Binding OpenPlaylistPickerCommand}"
+                                            Style="{StaticResource IconButton}"/>
 
                                     <!-- Playlist Popup -->
                                     <Popup PlacementTarget="{Binding ElementName=AddButton}"
@@ -163,7 +165,7 @@
                                            IsOpen="{Binding IsPlaylistPickerOpen, Mode=TwoWay}">
 
                                         <Border Background="{DynamicResource SidebarBackgroundColor}"
-                                                BorderBrush="{DynamicResource ButtonBorderColor}"
+                                                BorderBrush="{DynamicResource ButtonBorderBrushColor}"
                                                 BorderThickness="1"
                                                 CornerRadius="4"
                                                 Padding="8"
@@ -171,7 +173,6 @@
                                             <StackPanel>
                                                 <!-- Popup title -->
                                                 <TextBlock Text="Playlists"
-                                                           Style="{StaticResource PrimaryTextBlock}"
                                                            FontWeight="Bold"
                                                            HorizontalAlignment="Center"
                                                            Margin="0,0,0,6"/>
@@ -180,9 +181,8 @@
 
                                                 <!-- Playlists containing the track -->
                                                 <TextBlock Text="Remove From"
-                                                           Style="{StaticResource PrimaryTextBlock}"
                                                            FontWeight="Bold"
-                                                           Margin="0,0,0,4"/>
+                                                           Margin="0,0,0,5"/>
 
                                                 <ItemsControl ItemsSource="{Binding ExistingPlaylists}">
                                                     <ItemsControl.ItemTemplate>
@@ -194,7 +194,6 @@
                                                                 </Grid.ColumnDefinitions>
                                                                 <TextBlock Grid.Column="0"
                                                                            Text="{Binding Name}"
-                                                                           Style="{StaticResource PrimaryTextBlock}"
                                                                            VerticalAlignment="Center"/>
                                                                 <CheckBox Grid.Column="1"
                                                                           IsChecked="{Binding IsInPlaylist, Mode=OneWay}"
@@ -211,21 +210,19 @@
 
                                                 <!-- Playlists not containing the track -->
                                                 <TextBlock Text="Add to"
-                                                           Style="{StaticResource PrimaryTextBlock}"
                                                            FontWeight="Bold"
-                                                           Margin="0,0,0,4"/>
+                                                           Margin="0,0,0,5"/>
 
                                                 <ItemsControl ItemsSource="{Binding OtherPlaylists}">
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate>
-                                                            <Grid Margin="0,1">
+                                                            <Grid Margin="0,2">
                                                                 <Grid.ColumnDefinitions>
                                                                     <ColumnDefinition Width="*"/>
                                                                     <ColumnDefinition Width="Auto"/>
                                                                 </Grid.ColumnDefinitions>
                                                                 <TextBlock Grid.Column="0"
                                                                            Text="{Binding Name}"
-                                                                           Style="{StaticResource PrimaryTextBlock}"
                                                                            VerticalAlignment="Center"/>
                                                                 <CheckBox Grid.Column="1"
                                                                           IsChecked="{Binding IsInPlaylist, Mode=OneWay}"
@@ -240,7 +237,6 @@
                                                 
                                                 <!-- Loading -->
                                                 <TextBlock Text="Loading..."
-                                                           Style="{StaticResource PrimaryTextBlock}"
                                                            Foreground="{DynamicResource DisabledTextColor}"
                                                            Visibility="{Binding IsLoadingPlaylists, Converter={StaticResource BoolToVisibility}}"/>
                                             </StackPanel>
@@ -249,7 +245,7 @@
                                 </Grid>
                                 <Rectangle Height="1"
                                            Opacity="0.25"
-                                           Fill="{DynamicResource SeparatorColor}"/>
+                                           Fill="{DynamicResource SeparatorBackgroundColor}"/>
                             </StackPanel>
                         </DataTemplate>
                 </ListBox.ItemTemplate>

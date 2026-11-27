@@ -21,8 +21,7 @@
                                Style="{StaticResource SubtitleText}"/>
 
                     <TextBlock Text="{Binding Email, StringFormat='Signed in as {0}'}"
-                               HorizontalAlignment="Center"
-                               Style="{StaticResource PrimaryTextBlock}"/>
+                               HorizontalAlignment="Center"/>
 
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                         
@@ -42,13 +41,13 @@
                     <StackPanel HorizontalAlignment="Center"
                                 Visibility="{Binding IsAccountMode, Converter={StaticResource BoolToVisibility}}">
                         
-                        <TextBlock Text="Current password" Style="{StaticResource PrimaryTextBlock}"/>
+                        <TextBlock Text="Current password"/>
                         <PasswordBox PasswordChanged="CurrentPasswordBox_PasswordChanged"/>
 
-                        <TextBlock Text="New password" Style="{StaticResource PrimaryTextBlock}"/>
+                        <TextBlock Text="New password"/>
                         <PasswordBox x:Name="NewPasswordBox" PasswordChanged="NewPasswordBox_PasswordChanged"/>
 
-                        <TextBlock Text="Confirm new password" Style="{StaticResource PrimaryTextBlock}"/>
+                        <TextBlock Text="Confirm new password"/>
                         <PasswordBox x:Name="ConfirmPasswordBox" PasswordChanged="ConfirmPasswordBox_PasswordChanged"/>
 
                         <Button Content="Change password" Command="{Binding ChangePasswordCommand}"/>
@@ -100,8 +99,7 @@
 
                             <TextBlock Grid.Column="0"
                                        Text="Theme"
-                                       VerticalAlignment="Center"
-                                       Style="{StaticResource PrimaryTextBlock}"/>
+                                       VerticalAlignment="Center"/>
 
                             <ComboBox Grid.Column="1"
                                       Width="200"
@@ -124,8 +122,7 @@
                                 Margin="0,8,0,0">
                         <!-- Main Window Opacity -->
                         <TextBlock Text="Main Window Opacity"
-                                   HorizontalAlignment="Left"
-                                   Style="{StaticResource PrimaryTextBlock}"/>
+                                   HorizontalAlignment="Left"/>
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
@@ -142,15 +139,13 @@
                                        VerticalAlignment="Center"
                                        Width="48"
                                        TextAlignment="Right"
-                                       Foreground="{DynamicResource DisabledTextColor}"
-                                       Style="{StaticResource PrimaryTextBlock}"/>
+                                       Foreground="{DynamicResource DisabledTextColor}"/>
                         </Grid>
 
                         <!-- Mini Player Opacity -->
                         <TextBlock Text="Mini Player Opacity"
                                    HorizontalAlignment="Left"
-                                   Margin="0,8,0,0"
-                                   Style="{StaticResource PrimaryTextBlock}"/>
+                                   Margin="0,8,0,0"/>
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
@@ -167,8 +162,7 @@
                                        VerticalAlignment="Center"
                                        Width="48"
                                        TextAlignment="Right"
-                                       Foreground="{DynamicResource DisabledTextColor}"
-                                       Style="{StaticResource PrimaryTextBlock}"/>
+                                       Foreground="{DynamicResource DisabledTextColor}"/>
                         </Grid>
                         
                     </StackPanel>
@@ -190,15 +184,13 @@
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0"
                                        Text="Music"
-                                       VerticalAlignment="Center"
-                                       Style="{StaticResource PrimaryTextBlock}"/>
+                                       VerticalAlignment="Center"/>
                             <TextBlock Grid.Column="1"
                                        Text="{Binding MusicFolderPath}"
                                        TextTrimming="CharacterEllipsis"
                                        VerticalAlignment="Center"
                                        Margin="8,0"
-                                       Foreground="{DynamicResource DisabledTextColor}"
-                                       Style="{StaticResource PrimaryTextBlock}"/>
+                                       Foreground="{DynamicResource DisabledTextColor}"/>
                             <Button Grid.Column="2"
                                     Content="📁"
                                     Command="{Binding OpenFolderCommand}"
@@ -215,15 +207,13 @@
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0"
                                        Text="App data"
-                                       VerticalAlignment="Center"
-                                       Style="{StaticResource PrimaryTextBlock}"/>
+                                       VerticalAlignment="Center"/>
                             <TextBlock Grid.Column="1"
                                        Text="{Binding AppDataFolderPath}"
                                        TextTrimming="CharacterEllipsis"
                                        VerticalAlignment="Center"
                                        Margin="8,0"
-                                       Foreground="{DynamicResource DisabledTextColor}"
-                                       Style="{StaticResource PrimaryTextBlock}"/>
+                                       Foreground="{DynamicResource DisabledTextColor}"/>
                             <Button Grid.Column="2"
                                     Content="📁"
                                     Command="{Binding OpenFolderCommand}"
@@ -240,15 +230,13 @@
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0"
                                        Text="Themes"
-                                       VerticalAlignment="Center"
-                                       Style="{StaticResource PrimaryTextBlock}"/>
+                                       VerticalAlignment="Center"/>
                             <TextBlock Grid.Column="1"
                                        Text="{Binding ThemesFolderPath}"
                                        TextTrimming="CharacterEllipsis"
                                        VerticalAlignment="Center"
                                        Margin="8,0"
-                                       Foreground="{DynamicResource DisabledTextColor}"
-                                       Style="{StaticResource PrimaryTextBlock}"/>
+                                       Foreground="{DynamicResource DisabledTextColor}"/>
                             <Button Grid.Column="2"
                                     Content="📁"
                                     Command="{Binding OpenFolderCommand}"
@@ -311,7 +299,7 @@
                                    HorizontalAlignment="Center"
                                    Margin="0,8,0,0"
                                    FontWeight="SemiBold"
-                                   Foreground="{DynamicResource WarningColor}">
+                                   Foreground="{DynamicResource WarningTextColor}">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">
                                     <Style.Triggers>
@@ -335,7 +323,7 @@
                                Margin="0,4,0,0"
                                Foreground="{DynamicResource DisabledTextColor}">
                         <TextBlock.Style>
-                            <Style TargetType="TextBlock" BasedOn="{StaticResource PrimaryTextBlock}">
+                            <Style TargetType="TextBlock">
                                 <Setter Property="Visibility" Value="Collapsed"/>
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding IsUpdateInstalled}" Value="False">
@@ -350,8 +338,7 @@
                     <TextBlock Text="{Binding AppVersion}"
                                HorizontalAlignment="Center"
                                Margin="0,8,0,12"
-                               Foreground="{DynamicResource DisabledTextColor}"
-                               Style="{StaticResource PrimaryTextBlock}"/>
+                               Foreground="{DynamicResource DisabledTextColor}"/>
                 </StackPanel>
             </ScrollViewer>
         </DockPanel>

@@ -44,47 +44,45 @@
 
             <!-- Copy to Playlist -->
             <TextBlock Text="Copy to Playlist"
-                       Style="{StaticResource PrimaryTextBlock}"
-                       HorizontalAlignment="Center"
-                       Margin="0,0,0,10"/>
-            <ComboBox ItemsSource="{Binding PlaylistTargets}"
-                      SelectedItem="{Binding CopyTarget, Mode=TwoWay}"
-                      Width="200"
-                      HorizontalAlignment="Center">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding Name}"/>
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
-            <Button Content="Copy"
-                    Command="{Binding CopyCommand}"
-                    Style="{StaticResource PrimaryButton}"
-                    HorizontalAlignment="Center"
-                    Width="200"/>
+                       HorizontalAlignment="Center"/>
+            <StackPanel Orientation="Horizontal" 
+                        HorizontalAlignment="Center">
+                <ComboBox ItemsSource="{Binding PlaylistTargets}"
+                          SelectedItem="{Binding CopyTarget, Mode=TwoWay}"
+                          Width="150">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Name}"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+                <Button Content="⧉"
+                        Command="{Binding CopyCommand}"
+                        Style="{StaticResource IconButton}"
+                        ToolTip="Copy tracks to playlist"/>
+            </StackPanel>
 
             <Separator/>
 
             <!-- Move to Playlist -->
             <TextBlock Text="Move to Playlist"
-                       Style="{StaticResource PrimaryTextBlock}"
-                       HorizontalAlignment="Center"
-                       Margin="0,0,0,10"/>
-            <ComboBox ItemsSource="{Binding PlaylistTargets}"
-                      SelectedItem="{Binding MoveTarget, Mode=TwoWay}"
-                      Width="200"
-                      HorizontalAlignment="Center">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding Name}"/>
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
-            <Button Content="Move"
-                    Command="{Binding MoveCommand}"
-                    Style="{StaticResource PrimaryButton}"
-                    HorizontalAlignment="Center"
-                    Width="200"/>
+                       HorizontalAlignment="Center"/>
+            <StackPanel Orientation="Horizontal" 
+                        HorizontalAlignment="Center">
+                <ComboBox ItemsSource="{Binding PlaylistTargets}"
+                          SelectedItem="{Binding MoveTarget, Mode=TwoWay}"
+                          Width="150">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Name}"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+                <Button Content="→"
+                        Command="{Binding MoveCommand}"
+                        Style="{StaticResource IconButton}"
+                        ToolTip="Move tracks to playlist"/>
+            </StackPanel>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

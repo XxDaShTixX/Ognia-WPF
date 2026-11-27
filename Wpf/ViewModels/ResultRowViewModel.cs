@@ -77,7 +77,7 @@ public sealed class ResultRowViewModel : ViewModelBase
     private bool _isLoadingPlaylists;
 
     public bool HasTrackInAnyPlaylist => ExistingPlaylists.Count > 0;
-    public string PlaylistButtonGlyph => HasTrackInAnyPlaylist ? "✓" : "+";
+    public string PlaylistButtonGlyph => HasTrackInAnyPlaylist ? "✓" : "...";
 
     #endregion
 
