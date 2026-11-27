@@ -289,13 +289,15 @@
                                 <Button x:Name="PlaylistButton"
                                         Grid.Column="6"
                                         Width="30"
-                                        Content="ooo"
                                         Background="Transparent"
                                         FontWeight="Light"
                                         BorderThickness="0"
                                         ToolTip="Add or remove this track from playlists"
                                         Command="{Binding OpenPlaylistPickerCommand}"
-                                        Style="{StaticResource IconButton}"/>
+                                        Style="{StaticResource IconButton}">
+                                    <TextBlock Text="ooo"
+                                               Foreground="{DynamicResource AlternateTextColor}"/>
+                                </Button>
 
                                 <Popup PlacementTarget="{Binding ElementName=PlaylistButton}"
                                        Placement="Bottom"
