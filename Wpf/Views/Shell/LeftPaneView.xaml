@@ -6,8 +6,14 @@
             CornerRadius="10"
             Margin="10"
             ClipToBounds="True">
+        <Border.Background>
+            <LinearGradientBrush StartPoint="0,1" EndPoint="0,0">
+                <GradientStop Color="{DynamicResource BackgroundColor.Color}" Offset="0"/>
+                <GradientStop Color="{DynamicResource GradientBackgroundColor.Color}" Offset="1"/>
+            </LinearGradientBrush>
+        </Border.Background>
 
-        <DockPanel Style="{StaticResource SidebarDockPanel}">
+        <DockPanel>
 
             <StackPanel DockPanel.Dock="Top">
 

@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:Ognia.Wpf.Views.MainPane">
     <Grid>
-        <DockPanel Style="{StaticResource PrimaryDockPanel}">
+        <DockPanel Margin="10">
 
             <!-- Playlist header -->
             <Border DockPanel.Dock="Top" Margin="0,0,0,10">
@@ -450,11 +450,11 @@
                                            Text="{Binding Name}">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
-                                            <Setter Property="Foreground" Value="{DynamicResource LightTextColor}"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource AlternateTextColor}"/>
                                             <Setter Property="FontWeight" Value="Normal"/>
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding IsPlaying}" Value="True">
-                                                    <Setter Property="Foreground" Value="{DynamicResource AlternateTextColor}"/>
+                                                    <Setter Property="Foreground" Value="{DynamicResource LightTextColor}"/>
                                                     <Setter Property="FontWeight" Value="Bold"/>
                                                 </DataTrigger>
                                                 <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"

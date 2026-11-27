@@ -3,9 +3,9 @@
   "author": "Ognia",
   "colors": {
     "BackgroundColor": "#0D0A08",
+    "GradientBackgroundColor": "#17120E",
     "SidebarBackgroundColor": "#17120E",
     "PaneBackgroundColor": "#241C15",
-    "FadeMainPaneColor": "#302618",
     "SeparatorBackgroundColor": "#4A3927",
     "LightTextColor": "#F7F3EC",
     "AlternateTextColor": "#D0B07A",
