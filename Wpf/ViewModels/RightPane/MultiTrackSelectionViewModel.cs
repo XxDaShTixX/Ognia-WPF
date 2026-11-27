@@ -56,7 +56,9 @@ public sealed class MultiTrackSelectionViewModel : ViewModelBase
 
     /// <summary>Candidate targets for copy/move: every playlist except the current one.</summary>
     public IEnumerable<PlaylistResponse> PlaylistTargets =>
-        _session.Playlists.Where(p => p.Id != _session.SelectedPlaylist?.Id);
+        _session.Playlists
+            .Where(p => p.Id != _session.SelectedPlaylist?.Id)
+            .OrderBy(p => p.Name, StringComparer.CurrentCultureIgnoreCase);
 
     public PlaylistResponse? CopyTarget
     {
@@ -75,6 +77,12 @@ public sealed class MultiTrackSelectionViewModel : ViewModelBase
     public RelayCommand RemoveDownloadCommand { get; }
     public RelayCommand CopyCommand { get; }
     public RelayCommand MoveCommand { get; }
+
+    public void ResetTargets()
+    {
+        CopyTarget = null;
+        MoveTarget = null;
+    }
 
     public void OnPropertyChangedPublic()
     {

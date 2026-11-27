@@ -41,6 +41,19 @@ public partial class MainWindow : Window
         private set => SetValue(DisplayTitleProperty, value);
     }
 
+    public static readonly DependencyProperty IsUpdateAvailableProperty =
+        DependencyProperty.Register(
+            nameof(IsUpdateAvailable),
+            typeof(bool),
+            typeof(MainWindow),
+            new PropertyMetadata(false));
+
+    public bool IsUpdateAvailable
+    {
+        get => (bool)GetValue(IsUpdateAvailableProperty);
+        private set => SetValue(IsUpdateAvailableProperty, value);
+    }
+
     public MainWindow()
     {
         InitializeComponent();
@@ -54,7 +67,6 @@ public partial class MainWindow : Window
 
         DisplayTitle = AppInfo.DisplayVersion;
         Loaded += (_, _) => RefreshDisplayTitle();
-        UpdateService.Instance.StateChanged += OnUpdateStateChanged;
 
         Api = new ApiClientService(AppSettings.Instance.Api.BaseUrl);
         Navigator = new AppNavigator(Api, view => MainContent.Content = view);
@@ -69,7 +81,41 @@ public partial class MainWindow : Window
     => DisplayTitle = AppInfo.DisplayVersion;
 
     private void OnUpdateStateChanged()
-        => Dispatcher.Invoke(RefreshDisplayTitle);
+        => Dispatcher.Invoke(() =>
+        {
+            RefreshDisplayTitle();
+            IsUpdateAvailable = UpdateService.Instance.PendingVersion != null;
+        });
+
+    private async void UpdateButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (!IsUpdateAvailable) return;
+
+        var version = UpdateService.Instance.PendingVersion ?? "available";
+        var result = MessageBox.Show(
+            $"Update to v{version}? The app will restart.",
+            "Update Ognia",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question);
+
+        if (result != MessageBoxResult.Yes) return;
+
+        if (!UpdateService.Instance.PendingIsDownloaded)
+        {
+            var downloadedVersion = await UpdateService.Instance.CheckAsync(downloadIfFound: true);
+            if (downloadedVersion == null)
+            {
+                MessageBox.Show(
+                    "The update could not be downloaded.",
+                    "Update Ognia",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+                return;
+            }
+        }
+
+        UpdateService.Instance.ApplyAndRestart();
+    }
 
     /// <summary>
     /// Window round edges

@@ -31,53 +31,69 @@
                     Height="50"
                     Background="{DynamicResource BackgroundColor}"
                     WindowChrome.IsHitTestVisibleInChrome="False">
+                
+                <!-- App Title -->
                 <TextBlock Text="{Binding DisplayTitle}"
                            VerticalAlignment="Center"
                            Margin="12,0,0,0"
-                           FontSize="12"
                            Foreground="{DynamicResource DisabledTextColor}"/>
 
+                <!-- Buttons -->
                 <StackPanel Orientation="Horizontal"
                             HorizontalAlignment="Right"
                             VerticalAlignment="Center"
                             Margin="0,0,8,0">
+
+                    <!-- Update -->
+                    <Button Click="UpdateButton_Click"
+                            Visibility="{Binding IsUpdateAvailable, Converter={StaticResource BoolToVisibility}}"
+                            WindowChrome.IsHitTestVisibleInChrome="True"
+                            Width="30" Height="30"
+                            Cursor="Hand"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            ToolTip="Update Ognia">
+                        <TextBlock Text="↻" 
+                                   FontSize="20"
+                                   Foreground="{DynamicResource SuccessColor}"/>
+                    </Button>
+
+                    <!-- Mini Player -->
                     <Button Content="▣"
                             Click="MiniButton_Click"
                             WindowChrome.IsHitTestVisibleInChrome="True"
-                            Width="32" Height="30"
-                            FontSize="14"
+                            Width="30" Height="30"
                             Cursor="Hand"
-                            Foreground="{DynamicResource LightTextColor}"
                             Background="Transparent"
                             BorderThickness="0"
                             ToolTip="Mini player"/>
+                    
+                    <!-- Minimize -->
                     <Button Content="—"
                             Click="MinimizeButton_Click"
                             WindowChrome.IsHitTestVisibleInChrome="True"
-                            Width="32" Height="30"
-                            FontSize="14"
+                            Width="30" Height="30"
                             Cursor="Hand"
-                            Foreground="{DynamicResource LightTextColor}"
                             Background="Transparent"
                             BorderThickness="0"
                             ToolTip="Minimize"/>
+                    
+                    <!-- Maximize -->
                     <Button Content="▢"
                             Click="MaximizeButton_Click"
                             WindowChrome.IsHitTestVisibleInChrome="True"
-                            Width="32" Height="30"
-                            FontSize="14"
+                            Width="30" Height="30"
                             Cursor="Hand"
-                            Foreground="{DynamicResource LightTextColor}"
                             Background="Transparent"
                             BorderThickness="0"
                             ToolTip="Maximize"/>
+                    
+                    <!-- Close -->
                     <Button Content="✕"
                             Click="CloseButton_Click"
                             WindowChrome.IsHitTestVisibleInChrome="True"
-                            Width="32" Height="30"
-                            FontSize="14"
+                            Width="30" Height="30"
                             Cursor="Hand"
-                            Foreground="{DynamicResource LightTextColor}"
                             Background="Transparent"
                             BorderThickness="0"
                             ToolTip="Close"/>
