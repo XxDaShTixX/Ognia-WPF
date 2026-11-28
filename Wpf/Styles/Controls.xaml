@@ -65,8 +65,8 @@
          Overrides Background/BorderBrush so it's transparent at rest;
          hover/pressed/disabled still come from BaseButton's triggers. -->
     <Style x:Key="NavigationButton"
-       TargetType="Button"
-       BasedOn="{StaticResource BaseButton}">
+           TargetType="Button"
+           BasedOn="{StaticResource BaseButton}">
 
         <Setter Property="Width" Value="48"/>
         <Setter Property="Height" Value="48"/>
@@ -82,8 +82,7 @@
 
             <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}"
              Value="True">
-                <Setter Property="Foreground"
-            Value="{DynamicResource LightTextColor}"/>
+                <Setter Property="Foreground" Value="{DynamicResource LightTextColor}"/>
             </DataTrigger>
 
             <Trigger Property="IsMouseOver" Value="True">
@@ -96,23 +95,8 @@
 
     </Style>
 
-
-    <Style x:Key="ChromeButton" TargetType="Button">
-        <Setter Property="Foreground" Value="{DynamicResource DisabledTextColor}"/>
-        <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="BorderThickness" Value="0"/>
-
-        <Style.Triggers>
-            <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Foreground"
-                    Value="{DynamicResource HoverTextColor}"/>
-            </Trigger>
-        </Style.Triggers>
-    </Style>
-    
     <!-- =============== PANES =============== -->
     <Style x:Key="PaneBorder" TargetType="Border">
-        <Setter Property="Background" Value="{DynamicResource SidebarBackgroundColor}"/>
         <Setter Property="CornerRadius" Value="10"/>
         <Setter Property="Margin" Value="10"/>
         <Setter Property="Padding" Value="0"/>
@@ -122,23 +106,6 @@
     <!-- Pane Content -->
     <Style x:Key="PaneContent" TargetType="Grid">
         <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Margin" Value="0"/>
-    </Style>
-    
-    <!-- =============== GRID =============== -->
-    
-
-    <!-- =============== STACK PANEL =============== -->
-
-
-    <!-- =============== DOCK PANEL =============== -->
-    <Style x:Key="PrimaryDockPanel" TargetType="DockPanel">
-        <Setter Property="Margin" Value="10"/>
-    </Style>
-
-    <Style x:Key="SidebarDockPanel" TargetType="DockPanel">
-        <Setter Property="Background"
-            Value="{DynamicResource SidebarBackgroundColor}"/>
         <Setter Property="Margin" Value="0"/>
     </Style>
 

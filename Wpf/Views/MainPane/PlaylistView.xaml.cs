@@ -46,11 +46,20 @@ public partial class PlaylistView : UserControl
         }
         else
         {
-            // The ListBox remains in Multiple mode for range interaction, so
-            // clear its native visual selection for a plain row click.
-            TracksList.SelectedItems.Clear();
             session.SelectSingle(_dragItem);
         }
+
+        // Selection is managed by AppSession so it also drives the row checkboxes
+        // and the multi-track actions. Keep the ListBox's visual selection in sync
+        // and prevent its own mouse handling from replacing a selected range.
+        TracksList.SelectedItems.Clear();
+        foreach (var item in TracksList.Items)
+        {
+            if (item is TrackRowViewModel track && track.IsSelected)
+                TracksList.SelectedItems.Add(track);
+        }
+
+        e.Handled = true;
     }
 
     private void TracksList_PreviewMouseMove(object sender, MouseEventArgs e)
